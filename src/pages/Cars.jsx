@@ -76,6 +76,7 @@ export const cars = [
     specs: { topSpeed: "300 km/h", zeroToSixty: "2.4s" },
     details: { status: "Exclusive" }
   },
+  
   {
     id: "adyx-apex",
     name: "ADYX Apex",
@@ -205,7 +206,7 @@ const Cars = () => {
         </div>
 
         {/* Stats Strip */}
-        <div className="flex gap-12 mt-12 border-l border-white/5 pl-8">
+        <div className="flex gap-12 mt-12 border-l border-white/5 pl -8">
             {[
               { label: "0–100 KM/H", val: "2.8s" },
               { label: "DRIVE", val: "AI ASSISTED" },

@@ -4,7 +4,7 @@ export const cars = [
     name: "ADYX Spectre",
     price: 11,
     description: "A phantom on the road. Engineered with stealth technology and neural-link steering.",
-    modelPath: "/models/car_model.glb",
+    modelPath: "/models/car.glb",
     // We keep the property but can use it for a "Fallback Gradient" or BlurHash
     thumbnail: "linear-gradient(135deg, #050505 0%, #1a1a1a 100%)", 
     colors: [
@@ -28,7 +28,7 @@ export const cars = [
     name: "ADYX Nexus",
     price: 11,
     description: "The ultimate driver's interface. Where distributed intelligence meets raw aerodynamic power.",
-    modelPath: "/models/venom_model.glb",
+    modelPath: "/models/venom.glb",
     thumbnail: "linear-gradient(135deg, #0a0a0a 0%, #001f3f 100%)", 
     colors: [
       { name: "Neon Pulse", hex: "#39FF14" },
