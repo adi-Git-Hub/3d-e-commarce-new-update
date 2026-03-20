@@ -3,6 +3,7 @@ import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from
 import { useNavigate } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, useGLTF, Stage } from '@react-three/drei';
+import { useCars } from '../context/CarContext';
 
 // ================= 3D COMPONENTS (LOGIC UNCHANGED) =================
 const Model = ({ path }) => {
@@ -29,65 +30,6 @@ const CarCanvas = ({ modelPath }) => {
   );
 };
 
-// ================= DATA =================
-export const cars = [
-  {
-    id: "adyx-spectre",
-    name: "ADYX Spectre",
-    price: "1,10,00,000",
-    modelPath: "/models/car_model.glb",
-    thumbnail: "https://images.pexels.com/photos/3311574/pexels-photo-3311574.jpeg",
-    specs: { topSpeed: "280 km/h", zeroToSixty: "2.8s" },
-    details: { status: "Active" }
-  },
-  {
-    id: "adyx-nexus",
-    name: "ADYX Nexus",
-    price: "1,10,00,000",
-    modelPath: "/models/venom_model.glb",
-    thumbnail: "https://images.pexels.com/photos/3729464/pexels-photo-3729464.jpeg",
-    specs: { topSpeed: "320 km/h", zeroToSixty: "1.8s" },
-    details: { status: "In-Stock" }
-  },
-  {
-    id: "adyx-vortex",
-    name: "ADYX Vortex",
-    price: "85,00,000",
-    modelPath: "/models/audi_r8.glb",
-    thumbnail: "https://images.pexels.com/photos/3802510/pexels-photo-3802510.jpeg",
-    specs: { topSpeed: "260 km/h", zeroToSixty: "3.5s" },
-    details: { status: "Bespoke" }
-  },
-  {
-    id: "adyx-titan-x",
-    name: "ADYX Titan X",
-    price: "65,00,000",
-    modelPath: "/models/kia_sportage.glb",
-    thumbnail: "https://images.pexels.com/photos/170811/pexels-photo-170811.jpeg",
-    specs: { topSpeed: "230 km/h", zeroToSixty: "3.9s" },
-    details: { status: "Ready" }
-  },
-  {
-    id: "adyx-zenith",
-    name: "ADYX Zenith",
-    price: "1,10,00,000",
-    modelPath: "/models/bmw_i8.glb",
-    thumbnail: "https://images.pexels.com/photos/210019/pexels-photo-210019.jpeg",
-    specs: { topSpeed: "300 km/h", zeroToSixty: "2.4s" },
-    details: { status: "Exclusive" }
-  },
-  
-  {
-    id: "adyx-apex",
-    name: "ADYX Apex",
-    price: "85,00,000",
-    modelPath: "/models/bmw_m4_widebody.glb",
-    thumbnail: "https://images.pexels.com/photos/112460/pexels-photo-112460.jpeg",
-    specs: { topSpeed: "220 km/h", zeroToSixty: "4.5s" },
-    details: { status: "Available" }
-  }
-];
-
 // ================= CARD =================
 const CarCard = ({ car, index, hoveredCar, setHoveredCar, navigate }) => {
   const x = useMotionValue(0);
@@ -111,7 +53,7 @@ const CarCard = ({ car, index, hoveredCar, setHoveredCar, navigate }) => {
       onMouseMove={handleMouseMove}
       onMouseEnter={() => setHoveredCar(car.id)}
       onMouseLeave={() => setHoveredCar(null)}
-      onClick={() => navigate(`/car/${car.id}`)}
+      onClick={() => navigate(`/car/${car.slug || car.id}`)}
       className="group cursor-pointer relative"
     >
       <div className="rounded-[2.5rem] border border-white/10 overflow-hidden bg-[#0b0b0d] hover:border-cyan-400/50 hover:shadow-[0_0_40px_rgba(6,182,212,0.15)] transition-all duration-500">
@@ -121,15 +63,19 @@ const CarCard = ({ car, index, hoveredCar, setHoveredCar, navigate }) => {
           <AnimatePresence mode="wait">
             {hoveredCar === car.id ? (
               <motion.div key="3d" className="h-full">
-                <CarCanvas modelPath={car.modelPath} />
+                <CarCanvas modelPath={car.model_url} />
               </motion.div>
             ) : (
               <motion.div key="img" className="h-full relative">
-                <img
-                  src={car.thumbnail}
-                  alt={car.name}
-                  className="w-full h-full object-cover grayscale contrast-125 brightness-75 group-hover:brightness-95 transition duration-700"
-                />
+                {car.thumbnail ? (
+                  <img
+                    src={car.thumbnail}
+                    alt={car.name}
+                    className="w-full h-full object-cover grayscale contrast-125 brightness-75 group-hover:brightness-95 transition duration-700"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-[#0a0a0c] to-[#001f3f]" />
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
               </motion.div>
             )}
@@ -140,7 +86,7 @@ const CarCard = ({ car, index, hoveredCar, setHoveredCar, navigate }) => {
 
           {/* STATUS */}
           <div className="absolute top-5 left-5 text-[10px] uppercase tracking-widest text-cyan-400 opacity-0 group-hover:opacity-100 font-bold">
-            {car.details.status}
+            {car.details?.status || "Available"}
           </div>
         </div>
 
@@ -156,8 +102,8 @@ const CarCard = ({ car, index, hoveredCar, setHoveredCar, navigate }) => {
           <div className="w-10 h-[1px] bg-white/10 mt-8 mb-4 group-hover:w-full group-hover:bg-cyan-500/30 transition-all duration-700" />
 
           <div className="flex justify-between text-[11px] font-mono tracking-tighter text-white/40 group-hover:text-white/80">
-            <span>0-100: {car.specs.zeroToSixty}</span>
-            <span>MAX: {car.specs.topSpeed}</span>
+            <span>0-100: {car.specs?.zeroToSixty || "—"}</span>
+            <span>MAX: {car.specs?.topSpeed || "—"}</span>
           </div>
 
           {/* Ghost Button */}
@@ -176,6 +122,13 @@ const CarCard = ({ car, index, hoveredCar, setHoveredCar, navigate }) => {
 const Cars = () => {
   const navigate = useNavigate();
   const [hoveredCar, setHoveredCar] = useState(null);
+  const { cars, loading } = useCars();
+
+  if (loading) return (
+    <div className="min-h-screen bg-[#050507] text-white flex items-center justify-center text-cyan-400 tracking-widest uppercase text-sm">
+      Loading Fleet...
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#050507] text-white p-10 overflow-x-hidden">

@@ -1,12 +1,12 @@
 import { useGLTF } from "@react-three/drei"
 import { cars } from "../../../../data/cars"
 import * as THREE from "three"
-import { useMemo, useEffect, useRef } from "react"
+import { useMemo, useEffect } from "react"
 import { GLTF } from "three-stdlib"
-import { useThree, useFrame } from "@react-three/fiber"
 
 const SPACING = 35
 const TARGET_SIZE = 4.5
+
 
 function CarModel({ path, position }: any) {
 
@@ -63,35 +63,18 @@ function CarModel({ path, position }: any) {
 }
 
 export default function ScrollCars() {
-
-  const groupRef = useRef<THREE.Group>(null!)
-  const { mouse } = useThree()
-
-  // smooth mouse rotation
-  useFrame(() => {
-
-    if (!groupRef.current) return
-
-    const targetRotation = mouse.x * 0.6
-
-    groupRef.current.rotation.y +=
-      (targetRotation - groupRef.current.rotation.y) * 0.08
-
-  })
+  // FIX: Completely removed the useFrame and mouse-tracking logic
+  // The cars group is now completely static.
 
   return (
-    <group ref={groupRef}>
-
+    <group>
       {cars.map((car, i) => (
-
         <CarModel
           key={car.id}
           path={car.modelPath}
           position={[0, 0.6, -i * SPACING]}
         />
-
       ))}
-
     </group>
   )
 }

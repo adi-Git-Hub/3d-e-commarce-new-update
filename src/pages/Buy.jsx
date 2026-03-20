@@ -5,7 +5,6 @@ import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Stage, useGLTF } from "@react-three/drei";
 import { cars } from "../data/cars";
 
-
 // --- 3D ---
 const Model = ({ path }) => {
   const { scene } = useGLTF(path);
@@ -25,8 +24,14 @@ const CarCanvas = ({ modelPath }) => (
 
 export default function Buy() {
   const navigate = useNavigate();
-  const { id } = useParams();
-  const car = cars.find((c) => c.id === id);
+  const { slug } = useParams();
+  
+  // Find car using slug ONLY directly from static data
+  const car = cars.find((c) => c.slug === slug);
+
+  console.log("Route Slug:", slug);
+  console.log("Cars from data:", cars);
+  console.log("Matched car:", car);
 
   const [step, setStep] = useState("payment");
 
@@ -41,7 +46,10 @@ export default function Buy() {
     }, 3500);
   };
 
-  if (!car) return null;
+  // Safety check before rendering
+  if (!car) {
+    return <div className="bg-[#050507] h-screen text-white flex items-center justify-center font-sans uppercase tracking-[0.5em]">Car Not Found</div>;
+  }
 
   return (
     <div className="min-h-screen bg-[#050507] text-white p-8 relative overflow-hidden">
@@ -78,17 +86,19 @@ export default function Buy() {
               <h1 className="text-5xl font-black italic mb-8">{car.name}</h1>
 
               <div className="h-64 w-full mb-6">
-                <CarCanvas modelPath={car.modelPath} />
+                {car?.modelPath && (
+                  <CarCanvas modelPath={car.modelPath} />
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-6 text-sm">
                 <div>
-                  <p className="text-neutral-500">0-60</p>
-                  <p className="text-xl font-bold">{car.specs.zeroToSixty}</p>
+                  <p className="text-neutral-500">0-100</p>
+                  <p className="text-xl font-bold">{car?.specs?.zeroToSixty || car?.accel || "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-neutral-500">Top Speed</p>
-                  <p className="text-xl font-bold">{car.specs.topSpeed}</p>
+                  <p className="text-xl font-bold">{car?.specs?.topSpeed || car?.speed || "N/A"}</p>
                 </div>
               </div>
             </div>

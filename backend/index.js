@@ -10,7 +10,6 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
-
 const app = express();
 
 // 🔥 MIDDLEWARE
@@ -22,18 +21,13 @@ app.use(express.urlencoded({ extended: true }));
 const paymentRoutes = require("./routes/payment");
 app.use("/api/payment", paymentRoutes);
 
-
-
-// requst maail 
-
+// request maail 
 const contactRoute = require("./routes/contact");
 app.use("/api/contact", contactRoute);
 
-
-
-// 🔥 ROUTES LOAD KAR
-const authRoutes = require("./routes/auth");
-app.use("/api/auth", authRoutes);
+// 🔥 CONFLICT RESOLVED: Removed `app.use("/api/auth", authRoutes);` 
+// All auth routes are now handled by the specific app.post/get endpoints below
+// to guarantee the correct response structures (like returning the user object).
 
 // Booking rout 
 const bookingRoutes = require("./routes/bookings");
@@ -52,7 +46,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: 50 * 1024 * 1024 },
 });
 
 // 🔥 STATIC ACCESS
@@ -61,18 +55,91 @@ app.use("/uploads", express.static(uploadDir));
 const JWT_SECRET = process.env.JWT_SECRET || "devsecret";
 
 // =====================================================================
-// 🛡️ JWT AUTH
+// 🛡️ JWT AUTH MIDDLEWARES
 // =====================================================================
 const authenticateToken = (req, res, next) => {
-  const token = req.headers["authorization"]?.split(" ")[1];
-  if (!token) return res.status(401).json({ message: "No token provided" });
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
+  
+  if (!token) {
+    return res.status(401).json({ success: false, message: "No token provided" });
+  }
 
   jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ message: "Invalid or expired token" });
+    if (err) {
+      return res.status(403).json({ success: false, message: "Invalid or expired token" });
+    }
     req.user = user;
     next();
   });
 };
+
+// =====================================================================
+// 🛡️ ADMIN CHECK MIDDLEWARE
+// =====================================================================
+const isAdmin = (req, res, next) => {
+  if (req.user && req.user.role === "admin") {
+    next();
+  } else {
+    return res.status(403).json({ success: false, message: "Access denied. Admins only." });
+  }
+};
+
+// =====================================================================
+// 👑 ADMIN CREATION ROUTE
+// =====================================================================
+app.post("/api/admin/create", async (req, res) => {
+  // Frontend might send 'name' instead of 'username', handle both seamlessly
+  const { name, username, email, password, adminSecret } = req.body;
+  const finalUsername = username || name;
+
+  // Secure admin route with secret check
+  const expectedSecret = process.env.ADMIN_SECRET;
+  if (!expectedSecret || adminSecret !== expectedSecret) {
+    return res.status(403).json({ success: false, message: "Unauthorized: Invalid admin secret" });
+  }
+
+  if (!finalUsername || !email || !password) {
+    return res.status(400).json({ success: false, message: "All fields are required" });
+  }
+
+  try {
+    // 1. Check if any admin already exists in the system
+    const adminCheck = await pool.query("SELECT id FROM users WHERE role = 'admin'");
+    if (adminCheck.rows.length > 0) {
+      return res.status(403).json({ success: false, message: "An admin already exists in the system." });
+    }
+
+    // 2. Check if the username or email is already taken
+    const existingUser = await pool.query(
+      "SELECT id FROM users WHERE email = $1 OR username = $2",
+      [email, finalUsername]
+    );
+    
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({ success: false, message: "Email or username is already registered." });
+    }
+
+    // 3. Hash the password and create the admin
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    const result = await pool.query(
+      `INSERT INTO users (username, email, password, role)
+       VALUES ($1, $2, $3, 'admin') RETURNING id, username, email, role`,
+      [finalUsername, email, hashedPassword]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Admin created successfully",
+      user: result.rows[0]
+    });
+
+  } catch (err) {
+    console.error("ADMIN CREATE ERROR:", err);
+    res.status(500).json({ success: false, message: "Server error during admin creation" });
+  }
+});
 
 // =====================================================================
 // 👤 GET CURRENT USER
@@ -85,7 +152,7 @@ app.get("/api/auth/me", authenticateToken, async (req, res) => {
     );
     res.json({ success: true, user: result.rows[0] });
   } catch {
-    res.status(500).json({ success: false });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
@@ -115,7 +182,7 @@ app.put(
 
       res.json({ success: true, user: result.rows[0] });
     } catch {
-      res.status(500).json({ success: false });
+      res.status(500).json({ success: false, message: "Server error" });
     }
   }
 );
@@ -142,7 +209,7 @@ app.post("/api/bookings/reserve", authenticateToken, async (req, res) => {
     );
     res.json({ success: true, booking: result.rows[0] });
   } catch {
-    res.status(500).json({ success: false });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
@@ -209,7 +276,7 @@ app.post("/api/auth/register-step1", async (req, res) => {
 
   } catch (err) {
     console.error("REGISTER STEP1 ERROR:", err);
-    res.status(500).json({ success: false });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
@@ -220,20 +287,14 @@ app.post("/api/auth/register-step2", async (req, res) => {
     [email, otp]
   );
   if (check.rows.length === 0)
-    return res.status(400).json({ success: false });
+    return res.status(400).json({ success: false, message: "Invalid OTP" });
   res.json({ success: true });
 });
-
-
 
 app.post(
   "/api/auth/register-step3",
   upload.single("profile_pic"),
   async (req, res) => {
-
-    console.log("STEP3 BODY:", req.body);
-    console.log("STEP3 FILE:", req.file);
-
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -301,7 +362,7 @@ app.post(
       const result = await client.query(
         `INSERT INTO users (username, email, password, role, profile_pic)
          VALUES ($1, $2, $3, 'user', $4)
-         RETURNING id, username, email, profile_pic`,
+         RETURNING id, username, email, role, profile_pic`,
         [username, email, hash, profilePic]
       );
 
@@ -312,8 +373,9 @@ app.post(
 
       await client.query("COMMIT");
 
+      // Includes role in JWT token
       const token = jwt.sign(
-        { id: result.rows[0].id },
+        { id: result.rows[0].id, role: result.rows[0].role },
         JWT_SECRET,
         { expiresIn: "24h" }
       );
@@ -321,7 +383,12 @@ app.post(
       res.json({
         success: true,
         token,
-        user: result.rows[0],
+        user: {
+          id: result.rows[0].id,
+          username: result.rows[0].username,
+          email: result.rows[0].email,
+          role: result.rows[0].role
+        },
       });
 
     } catch (err) {
@@ -338,34 +405,64 @@ app.post(
   }
 );
 
-
+// =====================================================================
+// 🚀 FIXED: LOGIN SYSTEM
+// =====================================================================
 app.post("/api/auth/login", async (req, res) => {
-  const { username, password } = req.body;
+  const { username, email, password } = req.body;
+  
+  // Accept both 'username' or 'email' keys from frontend
+  const identifier = username || email;
+
+  if (!identifier || !password) {
+    return res.status(400).json({ success: false, message: "Please provide your username/email and password" });
+  }
+
   try {
+    // Check either username or email
     const user = await pool.query(
-      "SELECT * FROM users WHERE username=$1",
-      [username]
+      "SELECT * FROM users WHERE username = $1 OR email = $1",
+      [identifier]
     );
-    if (!user.rows.length) return res.status(400).json({ success: false });
+
+    if (!user.rows.length) {
+      return res.status(400).json({ success: false, message: "Invalid credentials" });
+    }
 
     const match = await bcrypt.compare(password, user.rows[0].password);
-    if (!match) return res.status(400).json({ success: false });
+    if (!match) {
+      return res.status(400).json({ success: false, message: "Invalid credentials" });
+    }
 
+    const userData = user.rows[0];
+
+    // Added Role into token
     const token = jwt.sign(
-      { id: user.rows[0].id },
+      { id: userData.id, role: userData.role },
       JWT_SECRET,
       { expiresIn: "24h" }
     );
 
-    res.json({ success: true, token, user: user.rows[0] });
-  } catch {
-    res.status(500).json({ success: false });
+    // Improved JSON Response matching frontend expectations
+    res.json({ 
+      success: true, 
+      token, 
+      user: {
+        id: userData.id,
+        username: userData.username,
+        email: userData.email,
+        role: userData.role
+      } 
+    });
+  } catch (err) {
+    console.error("LOGIN ERROR:", err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log("Server running on", PORT));
-
+// =====================================================================
+// 🗑️ DELETE ACCOUNT
+// =====================================================================
 app.delete("/api/auth/delete-account", authenticateToken, async (req, res) => {
   const { password } = req.body;
 
@@ -421,3 +518,100 @@ app.delete("/api/auth/delete-account", authenticateToken, async (req, res) => {
     });
   }
 });
+
+// =====================================================================
+// 🚗 CAR MANAGEMENT ROUTES (Added dynamically)
+// =====================================================================
+
+// GET all cars
+app.get("/api/cars", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM cars ORDER BY created_at DESC");
+    res.json({ success: true, data: result.rows });
+  } catch (err) {
+    console.error("GET CARS ERROR:", err);
+    res.status(500).json({ success: false, message: "Server error fetching cars" });
+  }
+});
+
+// POST Add new car (Admin only)
+app.post("/api/admin/add-car", authenticateToken, isAdmin, upload.single("model"), async (req, res) => {
+  try {
+    console.log("BODY:", req.body);
+    console.log("FILE:", req.file);
+
+    const { name, price } = req.body;
+
+    if (!name || !price || isNaN(price)) {
+      return res.status(400).json({ success: false, message: "Valid name and price are required" });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "Model file is required" });
+    }
+
+    const model_url = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+    const baseSlug = "adyx-" + name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+    const slug = baseSlug + "-" + Date.now();
+
+    const result = await pool.query(
+      "INSERT INTO cars (name, price, model_url, slug) VALUES ($1, $2, $3, $4) RETURNING *",
+      [name, price, model_url, slug]
+    );
+
+    res.status(201).json({ success: true, message: "Car added successfully", data: result.rows[0] });
+  } catch (err) {
+    console.error("ADD CAR ERROR:", err);
+    res.status(500).json({ success: false, message: err.message || "Server error adding car" });
+  }
+});
+
+// PUT Update car (Admin only)
+app.put("/api/admin/update-car/:id", authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, price } = req.body;
+
+    // Add validation
+    if (!name || !price || isNaN(price)) {
+      return res.status(400).json({ success: false, message: "Valid name and price are required" });
+    }
+
+    const result = await pool.query(
+      "UPDATE cars SET name = $1, price = $2 WHERE id = $3 RETURNING *",
+      [name, price, id]
+    );
+
+    // Check if the car existed before updating
+    if (result.rowCount === 0) {
+      return res.status(404).json({ success: false, message: "Car not found" });
+    }
+
+    res.json({ success: true, message: "Car updated successfully", data: result.rows[0] });
+  } catch (err) {
+    console.error("UPDATE CAR ERROR:", err);
+    res.status(500).json({ success: false, message: "Server error updating car" });
+  }
+});
+
+// DELETE Car (Admin only)
+app.delete("/api/admin/delete-car/:id", authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query("DELETE FROM cars WHERE id = $1 RETURNING id", [id]);
+
+    // Check if the car existed before deleting
+    if (result.rowCount === 0) {
+      return res.status(404).json({ success: false, message: "Car not found" });
+    }
+
+    res.json({ success: true, message: "Car deleted successfully" });
+  } catch (err) {
+    console.error("DELETE CAR ERROR:", err);
+    res.status(500).json({ success: false, message: "Server error deleting car" });
+  }
+});
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log("Server running on", PORT));

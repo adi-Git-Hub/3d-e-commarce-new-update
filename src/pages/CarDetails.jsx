@@ -1,20 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { cars } from '../data/cars';
+import { useCars } from '../context/CarContext';
 import CarPreview from '../three/CarPreview';
 
 const CarDetails = () => {
-  const { id } = useParams();
+  const { slug } = useParams();
   const navigate = useNavigate();
-  const car = cars.find((c) => c.id === id);
+  const { cars, loading } = useCars();
+  // match strictly by slug
+  const car = cars.find((c) => c.slug === slug);
+
+  console.log("Route slug:", slug);
+  console.log("Cars from context:", cars);
+  console.log("Matched car:", car);
   
-  const [activeColor, setActiveColor] = useState(car?.colors[0].hex);
+  const [activeColor, setActiveColor] = useState("#050505");
   const [showCheckout, setShowCheckout] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [isProcessing, setIsProcessing] = useState(false);
   const [processMessage, setProcessMessage] = useState("");
 
+  if (loading) return <div className="h-screen bg-black text-white flex items-center justify-center font-black uppercase tracking-[1em]">Loading...</div>;
   if (!car) return <div className="h-screen bg-black text-white flex items-center justify-center font-black uppercase tracking-[1em]">Neural Node Not Found</div>;
 
   const handlePayment = async (e) => {
@@ -77,7 +84,7 @@ const CarDetails = () => {
         </div>
 
         <div className="absolute top-10 right-10 z-20 text-right opacity-30">
-            <p className="text-[8px] font-mono text-white uppercase tracking-tighter">System_Ref: {car.id.toUpperCase()}</p>
+            <p className="text-[8px] font-mono text-white uppercase tracking-tighter">System_Ref: {car.slug.toUpperCase()}</p>
             <p className="text-[8px] font-mono text-white uppercase tracking-tighter">Coord: 28.6139° N, 77.2090° E</p>
         </div>
 
@@ -88,7 +95,7 @@ const CarDetails = () => {
         </div>
 
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative z-10 w-full h-full flex items-center justify-center">
-          <CarPreview modelPath={car.modelPath} paintColor={activeColor} autoRotate={false} />
+          <CarPreview modelPath={car.model_url} paintColor={activeColor} autoRotate={false} />
         </motion.div>
 
         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 w-full max-w-2xl px-6">
@@ -156,7 +163,7 @@ const CarDetails = () => {
           <div className="space-y-6">
             <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.4em]">Exterior Selection</p>
             <div className="flex gap-5">
-              {car.colors.map((color, index) => (
+              {(car.colors || [{ name: "Default", hex: "#050505" }, { name: "White", hex: "#e0e0e0" }, { name: "Red", hex: "#4a0000" }]).map((color, index) => (
                 <button key={index} onClick={() => setActiveColor(color.hex)} style={{ backgroundColor: color.hex }}
                   className={`w-10 h-10 rounded-full transition-all duration-700 ${activeColor === color.hex ? 'scale-110 ring-2 ring-cyan-500 ring-offset-4 ring-offset-black' : 'opacity-20 hover:opacity-100'}`} />
               ))}
@@ -196,7 +203,7 @@ const CarDetails = () => {
                 <div className="space-y-6">
                   <span className="text-cyan-500 text-[10px] font-black uppercase tracking-[0.5em]">Bespoke Deployment</span>
                   <h2 className="text-5xl font-black italic uppercase text-white leading-none">{car.name}</h2>
-                  <div className="h-64 w-full relative"><CarPreview modelPath={car.modelPath} paintColor={activeColor} autoRotate={false} /></div>
+                  <div className="h-64 w-full relative"><CarPreview modelPath={car.model_url} paintColor={activeColor} autoRotate={false} /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4 mt-4">
                    <div className="p-4 bg-white/[0.02] rounded-xl border border-white/5">

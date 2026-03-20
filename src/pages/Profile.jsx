@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
 
 export default function Profile() {
-  const { user, login } = useAuth();
+  const { user, login, logout } = useAuth();
   const navigate = useNavigate();
   
   const [username, setUsername] = useState(user?.username || "");
@@ -61,6 +61,14 @@ export default function Profile() {
     };
     if (user?.id) fetchHistory();
   }, [user?.id]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    sessionStorage.clear();
+    logout();
+    navigate("/login");
+  };
 
   const handleUpdate = async (e) => {
     e.preventDefault();
@@ -145,6 +153,14 @@ export default function Profile() {
 
               <button disabled={loading} type="submit" className="w-full bg-cyan-600 py-5 rounded-2xl font-black uppercase tracking-[0.4em] text-[10px] hover:bg-white hover:text-black hover:scale-[1.02] active:scale-95 transition-all duration-500 shadow-lg shadow-cyan-600/10">
                 {loading ? "Synchronizing..." : "Update Identity"}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="w-full border border-red-500/30 text-red-400/70 py-5 rounded-2xl font-black uppercase tracking-[0.4em] text-[10px] hover:bg-red-500/10 hover:border-red-500 hover:text-red-400 active:scale-95 transition-all duration-500"
+              >
+                Logout
               </button>
             </form>
           </div>

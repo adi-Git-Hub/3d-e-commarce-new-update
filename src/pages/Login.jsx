@@ -45,10 +45,7 @@ export default function Login() {
       localStorage.setItem("role", data.role || "user");
 
       // 🔥 FIXED: Login ke baad seedha "The Present" section par scroll karega
-   // Login.jsx
-// Purana code: navigate("/");
-// Naya code:
-navigate("/#main-content");
+      navigate("/#main-content");
 
     } catch (error) {
       setLoading(false);
@@ -108,12 +105,22 @@ navigate("/#main-content");
           </div>
 
           <button
+            type="submit"
             disabled={loading}
             className={`p-4 rounded-full font-black uppercase tracking-widest text-[10px] mt-2 transition-all ${
               loading ? "bg-white/10 text-white/20 cursor-not-allowed" : "bg-blue-600 hover:bg-white hover:text-black"
             }`}
           >
             {loading ? "Verifying..." : "Enter Adyx"}
+          </button>
+
+          {/* New Admin Login Button */}
+          <button
+            type="button"
+            onClick={() => navigate("/admin/login")}
+            className="p-4 rounded-full font-black uppercase tracking-widest text-[10px] transition-all border border-white/10 text-white/50 hover:text-white hover:border-white/30 hover:bg-white/5"
+          >
+            Login as Admin
           </button>
         </form>
 

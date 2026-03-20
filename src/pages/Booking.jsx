@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { cars } from "../data/cars";
 import BookingCarViewer from "../components/BookingCarViewer";
@@ -7,9 +7,16 @@ import axios from "axios";
 import confetti from "canvas-confetti";
 
 const Booking = () => {
-  const { id } = useParams();
+  const { slug } = useParams();
   const navigate = useNavigate();
-  const [selectedCar, setSelectedCar] = useState(null);
+  const loading = false;
+
+  const car = cars.find((c) => c.slug === slug);
+
+  console.log("Route Slug:", slug);
+  console.log("Cars from data:", cars);
+  console.log("Matched car:", car);
+
   const [isSending, setIsSending] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
@@ -23,10 +30,11 @@ const Booking = () => {
     specialRequest: "",
   });
 
-  useEffect(() => {
-    const car = cars.find((c) => c.id === parseInt(id) || c.id === id);
-    if (car) setSelectedCar(car);
-  }, [id]);
+  if (loading) return <div className="bg-[#050507] h-screen text-white flex items-center justify-center font-sans uppercase tracking-[0.5em]">Initializing ADYX...</div>;
+  
+  if (!car) {
+    return <div className="bg-[#050507] h-screen text-white flex items-center justify-center font-sans uppercase tracking-[0.5em]">Car Not Found</div>;
+  }
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -42,11 +50,11 @@ const Booking = () => {
       // 🔥 STEP 1: Database mein premium booking save karo
       // Isme price, duration aur location backend ko ja rahe hain
       await axios.post("http://localhost:5000/api/bookings/reserve", {
-        car_name: selectedCar.name,
-        car_model_id: selectedCar.id,
+        car_name: car.name,
+        car_model_id: car.id,
         booking_type: formData.bookingType,
         city: formData.city,
-        price: selectedCar.price, // Car data se price uthayega
+        price: car.price, // Car data se price uthayega
         duration: "Full-Ownership", // Static for premium feel
         pickup_location: `ADYX ${formData.city} Experience Center` // Location sync
       }, {
@@ -57,7 +65,7 @@ const Booking = () => {
       const templateParams = {
         user_name: formData.fullName,
         user_email: formData.email,
-        car_name: selectedCar.name,
+        car_name: car.name,
         city: formData.city,
         booking_type: formData.bookingType,
         message: formData.specialRequest || "No special request",
@@ -86,8 +94,6 @@ const Booking = () => {
     }
   };
 
-  if (!selectedCar) return <div className="bg-[#050507] h-screen text-white flex items-center justify-center font-sans uppercase tracking-[0.5em]">Initializing ADYX...</div>;
-
   if (isSubmitted) {
     return (
       <div className="min-h-screen bg-[#050507] text-white flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-1000">
@@ -98,7 +104,7 @@ const Booking = () => {
              <div className="h-[1px] w-24 bg-white/20 mx-auto" />
           </div>
           <p className="text-white/40 tracking-widest text-[10px] leading-loose max-w-md mx-auto normal-case">
-            A confirmation for your <span className="text-white font-bold uppercase">{selectedCar.name}</span> has been sent to <span className="text-blue-400">{formData.email}</span>.
+            A confirmation for your <span className="text-white font-bold uppercase">{car.name}</span> has been sent to <span className="text-blue-400">{formData.email}</span>.
           </p>
           <button 
             onClick={() => navigate("/profile")} 
@@ -121,17 +127,19 @@ const Booking = () => {
         <div className="lg:col-span-7 p-8 lg:p-20 flex flex-col justify-between sticky top-0 h-screen">
           <div className="space-y-2">
             <span className="text-blue-500 font-bold uppercase tracking-[0.4em] text-xs">Premium Selection</span>
-            <h1 className="text-8xl font-black italic uppercase tracking-tighter leading-none">{selectedCar.name}</h1>
-            <p className="text-2xl text-white/40 italic font-light capitalize">{selectedCar.variant || "Performance Edition"}</p>
+            <h1 className="text-8xl font-black italic uppercase tracking-tighter leading-none">{car.name}</h1>
+            <p className="text-2xl text-white/40 italic font-light capitalize">{car.variant || "Performance Edition"}</p>
           </div>
 
           <div className="relative w-full h-full flex items-center justify-center scale-125">
-             <BookingCarViewer modelPath={selectedCar.modelPath} />
+             {car?.modelPath && (
+               <BookingCarViewer modelPath={car.modelPath} />
+             )}
           </div>
 
           <div className="flex items-end justify-between border-t border-white/5 pt-8 min-w-0">
             <p className="text-3xl md:text-4xl font-mono break-all font-bold tracking-tighter">
-  ₹{new Intl.NumberFormat("en-IN").format(selectedCar.price)}
+  ₹{new Intl.NumberFormat("en-IN").format(car.price)}
 </p>
             <div className="text-right space-y-1">
                <p className="text-[10px] text-white/30 uppercase tracking-widest font-bold">Delivery Status</p>

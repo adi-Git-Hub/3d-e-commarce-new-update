@@ -84,3 +84,6 @@ backend/uploads/
 .tmp/
 *.local
 
+# macOS junk
+._*
+.DS_Store

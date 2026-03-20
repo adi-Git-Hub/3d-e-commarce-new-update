@@ -4,7 +4,9 @@ import { Environment, useTexture, Text3D, Center, Text } from '@react-three/drei
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence, Variants } from 'framer-motion';
+
+// Auth hook
+import { useAuth } from '../../../../context/AuthContext';
 
 import { Mountains } from './Mountains';
 import { ForestAmbience } from './ForestAmbience';
@@ -78,45 +80,40 @@ function StepScrollController() {
   return null;
 }
 
-// =============================================
-// MANUAL ORBIT CONTROLLER (FOR SIDE VIEW)
-// =============================================
+// 360 Drag Interaction for Stage 1 (Side View)
 function OrbitInteraction() {
-  const isDragging = useRef<boolean>(false);
-  const previousX = useRef<number>(0);
-
   useEffect(() => {
-    const onPointerDown = (e: Event) => {
-      const ptrEvent = e as PointerEvent;
-      if (scrollState.step % 3 === 1) {
-        isDragging.current = true;
-        previousX.current = ptrEvent.clientX;
+    let isDragging = false;
+    let previousX = 0;
+
+    const onPointerDown = (e: PointerEvent) => {
+      isDragging = true;
+      previousX = e.clientX;
+    };
+    
+    const onPointerMove = (e: PointerEvent) => {
+      if (isDragging) {
+        const deltaX = e.clientX - previousX;
+        // Only allow orbiting when in Stage 1 (Side View)
+        if (scrollState.step % 3 === 1) {
+          scrollState.targetOrbitAngle += deltaX * 0.008; // Orbit speed
+        }
+        previousX = e.clientX;
       }
     };
-
-    const onPointerMove = (e: Event) => {
-      const ptrEvent = e as PointerEvent;
-      if (isDragging.current && scrollState.step % 3 === 1) {
-        const deltaX = ptrEvent.clientX - previousX.current;
-        scrollState.targetOrbitAngle -= deltaX * 0.005; 
-        previousX.current = ptrEvent.clientX;
-      }
-    };
-
+    
     const onPointerUp = () => {
-      isDragging.current = false;
+      isDragging = false;
     };
 
     window.addEventListener('pointerdown', onPointerDown);
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
-    window.addEventListener('pointercancel', onPointerUp);
 
     return () => {
       window.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
-      window.removeEventListener('pointercancel', onPointerUp);
     };
   }, []);
 
@@ -124,7 +121,7 @@ function OrbitInteraction() {
 }
 
 // =============================================
-// DYNAMIC CAR LIGHTING (OPTIMIZED)
+// DYNAMIC CAR LIGHTING
 // =============================================
 function DynamicCarLighting() {
   const lightGroupRef = useRef<THREE.Group>(null!);
@@ -230,7 +227,7 @@ function HorizonCityGlow() {
 }
 
 // =============================================
-// CITY SKYLINE COMPONENTS (OPTIMIZED & REALISTIC)
+// CITY SKYLINE COMPONENTS
 // =============================================
 interface BuildingData {
   x: number;
@@ -669,34 +666,26 @@ function CinematicCamera({ viewMode, carIndex }: CinematicCameraProps) {
   useFrame((state, delta: number) => {
     const lerp = 1 - Math.pow(0.00001, delta);
     
+    scrollState.orbitAngle = THREE.MathUtils.lerp(scrollState.orbitAngle, scrollState.targetOrbitAngle, 0.1);
+    
     const step = scrollState.step;
     const stage = step % 3;
     const carIndexFromStep = Math.floor(step / 3);
     const carZ = -carIndexFromStep * 35;
 
-    if (stage !== 1) {
-      scrollState.targetOrbitAngle = 0;
-    }
-    
-    scrollState.orbitAngle = THREE.MathUtils.lerp(
-      scrollState.orbitAngle,
-      scrollState.targetOrbitAngle,
-      lerp
-    );
-
     const pos = new THREE.Vector3();
     const look = new THREE.Vector3();
 
     if (stage === 0) {
+      scrollState.targetOrbitAngle = 0; 
       pos.set(0, 2.2, carZ + 7.5);
       look.set(0, 0.9, carZ - 3);
     } else if (stage === 1) {
       const radius = 8.5;
-      const angle = scrollState.orbitAngle;
-      
-      pos.set(Math.cos(angle) * radius, 1.2, carZ + Math.sin(angle) * radius);
+      pos.set(Math.cos(scrollState.orbitAngle) * radius, 1.2, carZ + Math.sin(scrollState.orbitAngle) * radius);
       look.set(0, 0.8, carZ);
     } else {
+      scrollState.targetOrbitAngle = 0; 
       pos.set(3.2, 1.3, carZ + 1.8);
       look.set(0, 1.0, carZ - 0.8);
     }
@@ -764,6 +753,8 @@ function CyberParticles() {
 // FUTURISTIC 3D SHOWCASE UI COMPONENTS
 // =============================================
 interface CarData {
+  id?: string | number; 
+  slug?: string;
   name?: string;
   price?: number | string;
   model?: string;
@@ -801,21 +792,26 @@ function HologramButton({ position, text, primary, onClick }: HologramButtonProp
     <group position={position}>
       <mesh 
         ref={meshRef}
-        onClick={(e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onClick(); }}
+        onPointerDown={(e: ThreeEvent<PointerEvent>) => { 
+          e.stopPropagation(); 
+          onClick(); 
+        }}
         onPointerOver={(e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; }}
         onPointerOut={(e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); setHovered(false); document.body.style.cursor = 'auto'; }}
+        renderOrder={999}
       >
-        <boxGeometry args={[0.9, 0.22, 0.04]} />
+        <boxGeometry args={[0.75, 0.18, 0.04]} />
         <meshBasicMaterial 
           color={primary ? "#0ea5e9" : "#0f172a"} 
           transparent 
           opacity={hovered ? 0.9 : 0.6} 
           toneMapped={false} 
           blending={THREE.NormalBlending}
+          depthTest={false}
         />
         
-        <mesh>
-           <boxGeometry args={[0.95, 0.25, 0.02]} />
+        <mesh renderOrder={999}>
+           <boxGeometry args={[0.79, 0.21, 0.02]} />
            <meshBasicMaterial 
               color={primary ? "#38bdf8" : "#38bdf8"} 
               transparent 
@@ -823,10 +819,64 @@ function HologramButton({ position, text, primary, onClick }: HologramButtonProp
               wireframe 
               blending={THREE.AdditiveBlending} 
               toneMapped={false}
+              depthTest={false}
            />
         </mesh>
         
-        <Text position={[0, 0, 0.03]} fontSize={0.09} color={primary ? "#ffffff" : "#38bdf8"} letterSpacing={0.1}>
+        <Text position={[0, 0, 0.03]} fontSize={0.06} letterSpacing={0.1} renderOrder={1000}>
+          {text}
+          <meshBasicMaterial color={primary ? "#ffffff" : "#38bdf8"} toneMapped={false} depthTest={false} transparent />
+        </Text>
+      </mesh>
+    </group>
+  );
+}
+
+// =============================================
+// GLOBAL PERSISTENT HUD (Login & Avatar)
+// =============================================
+function SmallHologramButton({ position, text, primary, onClick }: HologramButtonProps) {
+  const meshRef = useRef<THREE.Mesh>(null!);
+  const [hovered, setHovered] = useState(false);
+
+  useFrame(() => {
+    const targetScale = hovered ? 1.1 : 1;
+    meshRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.15);
+  });
+
+  return (
+    <group position={position}>
+      <mesh 
+        ref={meshRef}
+        onPointerDown={(e: ThreeEvent<PointerEvent>) => { 
+          e.stopPropagation(); 
+          onClick(); 
+        }}
+        onPointerOver={(e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; }}
+        onPointerOut={(e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); setHovered(false); document.body.style.cursor = 'auto'; }}
+      >
+        <boxGeometry args={[0.7, 0.18, 0.02]} />
+        <meshBasicMaterial 
+          color={primary ? "#38bdf8" : "#0f172a"} 
+          transparent 
+          opacity={hovered ? 0.9 : 0.6} 
+          toneMapped={false} 
+          blending={THREE.NormalBlending}
+        />
+        
+        <mesh>
+           <boxGeometry args={[0.74, 0.21, 0.01]} />
+           <meshBasicMaterial 
+              color={primary ? "#ffffff" : "#38bdf8"} 
+              transparent 
+              opacity={hovered ? 0.8 : 0.3} 
+              wireframe 
+              blending={THREE.AdditiveBlending} 
+              toneMapped={false}
+           />
+        </mesh>
+        
+        <Text position={[0, 0, 0.02]} fontSize={0.06} color={primary ? "#020617" : "#38bdf8"} letterSpacing={0.1} fontWeight={900}>
           {text}
         </Text>
       </mesh>
@@ -834,6 +884,124 @@ function HologramButton({ position, text, primary, onClick }: HologramButtonProp
   );
 }
 
+function AvatarHologramButton({ position, onClick }: { position: [number, number, number], onClick: () => void }) {
+  const groupRef = useRef<THREE.Group>(null!);
+  const [hovered, setHovered] = useState(false);
+  
+  const { gl } = useThree();
+  const { user } = useAuth();
+  const profileTexture = user?.profile_pic ? useTexture(user.profile_pic) : null;
+
+  useEffect(() => {
+    if (profileTexture && profileTexture.image) {
+      profileTexture.colorSpace = THREE.SRGBColorSpace;
+      profileTexture.anisotropy = gl.capabilities.getMaxAnisotropy();
+      profileTexture.minFilter = THREE.LinearMipmapLinearFilter;
+      profileTexture.magFilter = THREE.LinearFilter;
+      
+      const aspect = profileTexture.image.width / profileTexture.image.height;
+      if (aspect > 1) {
+        profileTexture.repeat.set(1 / aspect, 1);
+        profileTexture.offset.set((1 - 1 / aspect) / 2, 0);
+      } else {
+        profileTexture.repeat.set(1, aspect);
+        profileTexture.offset.set(0, (1 - aspect) / 2);
+      }
+      
+      profileTexture.needsUpdate = true;
+    }
+  }, [profileTexture, gl]);
+
+  useFrame((state) => {
+    const baseScale = hovered ? 1.1 : 1.0;
+    const pulse = Math.sin(state.clock.elapsedTime * 3) * 0.03;
+    const targetScale = baseScale + pulse;
+    groupRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.15);
+  });
+
+  return (
+    <group 
+      ref={groupRef} 
+      position={position}
+      onPointerDown={(e: ThreeEvent<PointerEvent>) => { 
+        e.stopPropagation(); 
+        onClick(); 
+      }}
+      onPointerOver={(e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; }}
+      onPointerOut={(e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); setHovered(false); document.body.style.cursor = 'auto'; }}
+    >
+      <mesh position={[0, 0, 0]} renderOrder={999}>
+        <circleGeometry args={[0.13, 64]} />
+        {profileTexture ? (
+          <meshBasicMaterial map={profileTexture} color={[1.3, 1.3, 1.3]} transparent={false} toneMapped={false} depthTest={false} />
+        ) : (
+          <meshBasicMaterial color="#0f172a" transparent opacity={0.9} toneMapped={false} depthTest={false} />
+        )}
+      </mesh>
+      
+      <mesh position={[0, 0, 0.01]} renderOrder={1000}>
+        <ringGeometry args={[0.13, 0.16, 64]} />
+        <meshBasicMaterial 
+           color="#38bdf8" 
+           transparent 
+           opacity={hovered ? 1 : 0.6} 
+           blending={THREE.AdditiveBlending} 
+           toneMapped={false} 
+           depthTest={false}
+        />
+      </mesh>
+
+      {!profileTexture && (
+        <Text position={[0, -0.015, 0.02]} fontSize={0.12} fontWeight="bold" renderOrder={1001}>
+          {user?.name?.charAt(0).toUpperCase() || "U"}
+          <meshBasicMaterial color={hovered ? "#ffffff" : "#38bdf8"} toneMapped={false} depthTest={false} transparent />
+        </Text>
+      )}
+    </group>
+  );
+}
+
+function GlobalHUD({ navigate }: { navigate: ReturnType<typeof useNavigate> }) {
+  const groupRef = useRef<THREE.Group>(null!);
+  
+  const { user } = useAuth();
+
+  useFrame((state) => {
+    if (!groupRef.current) return;
+    
+    const camera = state.camera as THREE.PerspectiveCamera;
+    const dist = 4; 
+    
+    const vFov = THREE.MathUtils.degToRad(camera.fov);
+    const vHeight = 2 * Math.tan(vFov / 2) * dist;
+    const vWidth = vHeight * camera.aspect;
+
+    const xOffset = (vWidth / 2) - 0.8; 
+    const yOffset = (vHeight / 2) - 0.5;
+    
+    const offset = new THREE.Vector3(xOffset, yOffset, -dist);
+    offset.y += Math.sin(state.clock.elapsedTime * 2) * 0.03;
+    
+    offset.applyQuaternion(camera.quaternion);
+    
+    groupRef.current.position.copy(camera.position).add(offset);
+    groupRef.current.quaternion.copy(camera.quaternion);
+  });
+
+  return (
+    <group ref={groupRef}>
+       {user ? (
+         <AvatarHologramButton position={[0, 0, 0]} onClick={() => navigate('/profile')} />
+       ) : (
+         <SmallHologramButton position={[0, 0, 0]} text="LOGIN" primary onClick={() => navigate('/login')} />
+       )}
+    </group>
+  );
+}
+
+// =============================================
+// MAIN CAR SHOWCASE UI
+// =============================================
 function Floating3DTitle({ currentCar }: { currentCar: number }) {
   const groupRef = useRef<THREE.Group>(null!);
   const car = cars[currentCar] as CarData | undefined;
@@ -845,17 +1013,16 @@ function Floating3DTitle({ currentCar }: { currentCar: number }) {
     const carZ = -activeCarIndex * 35;
     const stage = scrollState.step % 3;
     
-    // FIX: Significantly lowered the Y position so the text never goes above the browser viewport bounds
-    const targetY = 2.5; 
+    const targetY = 2.0; 
+    const targetX = -0.6; 
+    const targetPos = new THREE.Vector3(targetX, targetY + Math.sin(state.clock.elapsedTime * 1.5) * 0.05, carZ + 1.2);
     
-    groupRef.current.position.x = THREE.MathUtils.lerp(groupRef.current.position.x, 0, 0.08); 
-    groupRef.current.position.y = THREE.MathUtils.lerp(groupRef.current.position.y, targetY + Math.sin(state.clock.elapsedTime * 1.5) * 0.1, 0.08);
-    groupRef.current.position.z = THREE.MathUtils.lerp(groupRef.current.position.z, carZ, 0.08);
-    
+    groupRef.current.position.lerp(targetPos, 0.08);
     groupRef.current.lookAt(state.camera.position);
 
-    // FIX: Title is strictly limited to Stage 2 to prevent any overlap in Stage 1
-    const targetScale = stage === 2 ? 0.7 : 0;
+    const isOutOfBounds = activeCarIndex >= cars.length;
+    const targetScale = (stage === 2 && !isOutOfBounds) ? 1 : 0;
+    
     groupRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.08);
 
     if (groupRef.current.scale.x < 0.01 && targetScale === 0) {
@@ -866,31 +1033,31 @@ function Floating3DTitle({ currentCar }: { currentCar: number }) {
   });
 
   return (
-    <group ref={groupRef} position={[0, 2.5, 0]} scale={0}>
+    <group ref={groupRef} position={[-0.6, 2.0, 0]} scale={0}>
       <Center>
         <Text3D 
           font="https://cdn.jsdelivr.net/npm/three/examples/fonts/helvetiker_bold.typeface.json"
-          size={0.4} 
-          height={0.05} 
+          size={0.18} 
+          height={0.01} 
           curveSegments={4}
           bevelEnabled
-          bevelThickness={0.01}
-          bevelSize={0.005}
+          bevelThickness={0.002}
+          bevelSize={0.001}
           bevelSegments={1}
         >
           {car?.name || "SPECTRE"}
-          <meshStandardMaterial color="#38bdf8" emissive="#38bdf8" emissiveIntensity={2.5} toneMapped={false} />
+          <meshStandardMaterial color="#38bdf8" emissive="#38bdf8" emissiveIntensity={2.5} toneMapped={false} depthTest={false} transparent />
         </Text3D>
       </Center>
-      <Center position={[0, -0.35, 0]}>
+      <Center position={[0, -0.22, 0]}>
         <Text3D 
           font="https://cdn.jsdelivr.net/npm/three/examples/fonts/helvetiker_bold.typeface.json"
-          size={0.15} 
-          height={0.02} 
+          size={0.06} 
+          height={0.005} 
           curveSegments={4}
         >
           {car?.model || "PREMIUM EDITION"}
-          <meshStandardMaterial color="#fef08a" emissive="#fef08a" emissiveIntensity={1.5} toneMapped={false} />
+          <meshStandardMaterial color="#fef08a" emissive="#fef08a" emissiveIntensity={1.5} toneMapped={false} depthTest={false} transparent />
         </Text3D>
       </Center>
     </group>
@@ -918,21 +1085,20 @@ function InteractiveHologramPanel({ currentCar, navigate }: Futuristic3DUIProps)
     const step = scrollState.step;
     const stage = step % 3;
     const activeCarIndex = Math.floor(step / 3);
-    const isActive = stage === 2;
+    
+    const isOutOfBounds = activeCarIndex >= cars.length;
+    const isActive = stage === 2 && !isOutOfBounds;
+    
     const carZ = -activeCarIndex * 35;
     
-    const targetZ = carZ - 0.5; 
-    // FIX: Buttons placed strictly in between the lowered Title and the Car Roof 
-    const targetY = 1.6; 
-    
-    groupRef.current.position.x = THREE.MathUtils.lerp(groupRef.current.position.x, 0, 0.08); 
-    groupRef.current.position.y = THREE.MathUtils.lerp(groupRef.current.position.y, targetY + Math.sin(state.clock.elapsedTime * 1.2) * 0.05, 0.08);
-    groupRef.current.position.z = THREE.MathUtils.lerp(groupRef.current.position.z, targetZ, 0.08); 
+    const targetY = 1.3; 
+    const targetX = -0.6;
+    const targetPos = new THREE.Vector3(targetX, targetY + Math.sin(state.clock.elapsedTime * 1.2) * 0.05, carZ + 1.2);
 
+    groupRef.current.position.lerp(targetPos, 0.08); 
     groupRef.current.lookAt(state.camera.position);
 
-    // FIX: Further scaled down to avoid overlap
-    const targetScale = isActive ? 0.65 : 0;
+    const targetScale = isActive ? 1 : 0;
     groupRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.08);
 
     if (groupRef.current.scale.x < 0.01 && targetScale === 0) {
@@ -951,43 +1117,44 @@ function InteractiveHologramPanel({ currentCar, navigate }: Futuristic3DUIProps)
 
   return (
     <group ref={groupRef} scale={0}>
-       {/* FIX: Rupee format preserved */}
-       <Text position={[0, 0.45, 0]} fontSize={0.12} color="#FFD700" letterSpacing={0.1}>
+       <Text position={[0, 0.35, 0]} fontSize={0.08} letterSpacing={0.1} renderOrder={1000}>
           PRICE: ₹{car?.price || "11 Crore"}
-          <meshBasicMaterial color="#FFD700" toneMapped={false} />
+          <meshBasicMaterial color="#FFD700" toneMapped={false} depthTest={false} transparent />
        </Text>
        
-       <HologramButton position={[0, 0.1, 0]} text="BOOK NOW" primary onClick={() => navigate('/booking')} />
-       <HologramButton position={[0, -0.25, 0]} text="BUY NOW" primary onClick={() => navigate('/buy')} />
-       <HologramButton position={[0, -0.6, 0]} text={showDetails ? "HIDE INFO" : "MORE INFO"} onClick={() => setShowDetails(!showDetails)} />
+       <HologramButton position={[0, 0.20, 0]} text="BOOK NOW" primary onClick={() => car?.slug && navigate(`/booking/${car.slug}`)} />
+       <HologramButton position={[0, -0.05, 0]} text="BUY NOW" primary onClick={() => car?.slug && navigate(`/payment/${car.slug}`)} />
+       <HologramButton position={[0, -0.30, 0]} text="MORE INFO" onClick={() => car?.slug && navigate(`/car/${car.slug}`)} />
+       <HologramButton position={[0, -0.55, 0]} text={showDetails ? "HIDE STATS" : "QUICK STATS"} onClick={() => setShowDetails(!showDetails)} />
 
-       <group ref={detailsRef} position={[1.6, -0.2, 0]} scale={0}>
-          <mesh>
+       <group ref={detailsRef} position={[1.4, -0.1, 0]} scale={0}>
+          <mesh renderOrder={998}>
             <planeGeometry args={[1.8, 2.0]} />
-            <meshBasicMaterial color="#020617" transparent opacity={0.7} side={THREE.DoubleSide} blending={THREE.NormalBlending} />
+            <meshBasicMaterial color="#020617" transparent opacity={0.7} side={THREE.DoubleSide} blending={THREE.NormalBlending} depthTest={false} />
           </mesh>
-          <mesh>
+          <mesh renderOrder={999}>
             <boxGeometry args={[1.85, 2.05, 0.01]} />
-            <meshBasicMaterial color="#38bdf8" transparent opacity={0.4} wireframe blending={THREE.AdditiveBlending} toneMapped={false} />
+            <meshBasicMaterial color="#38bdf8" transparent opacity={0.4} wireframe blending={THREE.AdditiveBlending} toneMapped={false} depthTest={false} />
           </mesh>
           
-          <Text position={[0, 0.8, 0.02]} fontSize={0.1} color="#38bdf8" letterSpacing={0.1}>
-            GAADI KI JAANKARI
-            <meshBasicMaterial color="#38bdf8" toneMapped={false} />
+          <Text position={[0, 0.8, 0.02]} fontSize={0.1} letterSpacing={0.1} renderOrder={1000}>
+            ABOUT CAR
+            <meshBasicMaterial color="#38bdf8" toneMapped={false} depthTest={false} transparent />
           </Text>
-          <mesh position={[0, 0.65, 0.02]}>
+          <mesh position={[0, 0.65, 0.02]} renderOrder={999}>
             <planeGeometry args={[1.5, 0.01]} />
-            <meshBasicMaterial color="#38bdf8" transparent opacity={0.5} blending={THREE.AdditiveBlending} toneMapped={false} />
+            <meshBasicMaterial color="#38bdf8" transparent opacity={0.5} blending={THREE.AdditiveBlending} toneMapped={false} depthTest={false} />
           </mesh>
 
           {specs.map((spec, i) => (
              <group key={i} position={[-0.7, 0.45 - i * 0.2, 0.02]}>
-                <Text position={[0, 0, 0]} fontSize={0.07} color="#94a3b8" anchorX="left">
+                <Text position={[0, 0, 0]} fontSize={0.06} anchorX="left" renderOrder={1000}>
                    {spec.label}
+                   <meshBasicMaterial color="#94a3b8" toneMapped={false} depthTest={false} transparent />
                 </Text>
-                <Text position={[1.4, 0, 0]} fontSize={0.09} color="#fef08a" anchorX="right">
+                <Text position={[1.4, 0, 0]} fontSize={0.08} anchorX="right" renderOrder={1000}>
                    {spec.value}
-                   <meshBasicMaterial color="#fef08a" toneMapped={false} />
+                   <meshBasicMaterial color="#fef08a" toneMapped={false} depthTest={false} transparent />
                 </Text>
              </group>
           ))}
@@ -1006,16 +1173,17 @@ function SideViewInfoPanel({ currentCar }: { currentCar: number }) {
     const step = scrollState.step;
     const stage = step % 3;
     const activeCarIndex = Math.floor(step / 3);
+    
+    const isOutOfBounds = activeCarIndex >= cars.length;
     const carZ = -activeCarIndex * 35;
     
-    // FIX: Scaled this block so it is centered securely when moving into the side-view angle
-    groupRef.current.position.x = THREE.MathUtils.lerp(groupRef.current.position.x, 0, 0.08); 
-    groupRef.current.position.y = THREE.MathUtils.lerp(groupRef.current.position.y, 2.0 + Math.sin(state.clock.elapsedTime * 1.2) * 0.1, 0.08);
-    groupRef.current.position.z = THREE.MathUtils.lerp(groupRef.current.position.z, carZ, 0.08);
+    const targetY = 2.4;
+    const targetPos = new THREE.Vector3(0, targetY + Math.sin(state.clock.elapsedTime * 1.2) * 0.1, carZ);
 
+    groupRef.current.position.lerp(targetPos, 0.08);
     groupRef.current.lookAt(state.camera.position);
 
-    const targetScale = stage === 1 ? 0.7 : 0;
+    const targetScale = (stage === 1 && !isOutOfBounds) ? 0.9 : 0;
     groupRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.08);
 
     if (groupRef.current.scale.x < 0.01 && targetScale === 0) {
@@ -1027,32 +1195,111 @@ function SideViewInfoPanel({ currentCar }: { currentCar: number }) {
 
   return (
     <group ref={groupRef} scale={0}>
-      <mesh position={[0, 0, -0.05]}>
-        <planeGeometry args={[2.5, 1.2]} />
-        <meshBasicMaterial color="#020617" transparent opacity={0.6} blending={THREE.NormalBlending} />
+      <mesh position={[0, 0, -0.05]} renderOrder={998}>
+        <planeGeometry args={[2.8, 1.2]} />
+        <meshBasicMaterial color="#020617" transparent opacity={0.7} blending={THREE.NormalBlending} depthTest={false} />
       </mesh>
-      <mesh position={[0, 0, -0.04]}>
-        <boxGeometry args={[2.55, 1.25, 0.01]} />
-        <meshBasicMaterial color="#38bdf8" transparent opacity={0.3} wireframe blending={THREE.AdditiveBlending} toneMapped={false} />
+      <mesh position={[0, 0, -0.04]} renderOrder={999}>
+        <boxGeometry args={[2.85, 1.25, 0.01]} />
+        <meshBasicMaterial color="#38bdf8" transparent opacity={0.5} wireframe blending={THREE.AdditiveBlending} toneMapped={false} depthTest={false} />
       </mesh>
 
-      {/* FIX: Rupee format added here as well */}
-      <Text position={[0, 0.35, 0]} fontSize={0.14} color="#FFD700" letterSpacing={0.1}>
+      <Text position={[0, 0.35, 0]} fontSize={0.16} letterSpacing={0.05} renderOrder={1000}>
         PRICE: ₹{car?.price || "11 Crore"}
-        <meshBasicMaterial color="#FFD700" toneMapped={false} />
+        <meshBasicMaterial color="#FFD700" toneMapped={false} depthTest={false} transparent />
       </Text>
-      <Text position={[0, 0.05, 0]} fontSize={0.11} color="#ffffff" letterSpacing={0.1}>
-        RANGE: {car?.range || "610 km"}
-        <meshBasicMaterial color="#ffffff" toneMapped={false} />
+      <Text position={[0, 0.05, 0]} fontSize={0.12} letterSpacing={0.05} renderOrder={1000}>
+        RANGE: <meshBasicMaterial color="#a5f3fc" toneMapped={false} depthTest={false} transparent />{car?.range || "610 km"}
       </Text>
-      <Text position={[0, -0.15, 0]} fontSize={0.11} color="#ffffff" letterSpacing={0.1}>
-        TAAQAT: {car?.hp || "920 HP"}
-        <meshBasicMaterial color="#ffffff" toneMapped={false} />
+      <Text position={[0, -0.15, 0]} fontSize={0.12} letterSpacing={0.05} renderOrder={1000}>
+        TAAQAT: <meshBasicMaterial color="#a5f3fc" toneMapped={false} depthTest={false} transparent />{car?.hp || "920 HP"}
       </Text>
-      <Text position={[0, -0.35, 0]} fontSize={0.11} color="#ffffff" letterSpacing={0.1}>
-        TOP SPEED: {car?.speed || "340 km/h"}
-        <meshBasicMaterial color="#ffffff" toneMapped={false} />
+      <Text position={[0, -0.35, 0]} fontSize={0.12} letterSpacing={0.05} renderOrder={1000}>
+        TOP SPEED: <meshBasicMaterial color="#a5f3fc" toneMapped={false} depthTest={false} transparent />{car?.speed || "340 km/h"}
       </Text>
+
+      <Text position={[0, -1.8, 0]} fontSize={0.1} letterSpacing={0.2} renderOrder={1000}>
+        {"< DRAG TO ROTATE 360° >"}
+        <meshBasicMaterial color="#38bdf8" toneMapped={false} depthTest={false} transparent opacity={0.8} />
+      </Text>
+    </group>
+  );
+}
+
+function EndSceneUI({ navigate }: { navigate: ReturnType<typeof useNavigate> }) {
+  const groupRef = useRef<THREE.Group>(null!);
+  const portalRef = useRef<THREE.Mesh>(null!);
+
+  useFrame((state) => {
+    if (!groupRef.current) return;
+    
+    const activeCarIndex = Math.floor(scrollState.step / 3);
+    const isEnd = activeCarIndex >= cars.length;
+    
+    const endZ = -cars.length * 35;
+    
+    const targetY = 1.8; 
+    const targetX = 0; 
+    const floatingY = targetY + Math.sin(state.clock.elapsedTime * 1.5) * 0.1;
+    
+    const targetPos = new THREE.Vector3(targetX, floatingY, endZ + 1.5);
+    
+    groupRef.current.position.lerp(targetPos, 0.08);
+    groupRef.current.lookAt(state.camera.position);
+
+    const targetScale = isEnd ? 1 : 0;
+    groupRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.08);
+
+    if (groupRef.current.scale.x < 0.01 && targetScale === 0) {
+       groupRef.current.visible = false;
+    } else {
+       groupRef.current.visible = true;
+    }
+
+    if (portalRef.current) {
+      portalRef.current.rotation.z = state.clock.elapsedTime * 0.5;
+    }
+  });
+
+  return (
+    <group ref={groupRef} scale={0}>
+      <mesh position={[0, 0, -2]} renderOrder={990}>
+        <circleGeometry args={[4, 64]} />
+        <meshBasicMaterial color="#0ea5e9" transparent opacity={0.03} blending={THREE.AdditiveBlending} depthTest={false} toneMapped={false} />
+      </mesh>
+      <group ref={portalRef} position={[0, 0, -1.9]}>
+        <mesh renderOrder={991}>
+          <ringGeometry args={[3.8, 4.0, 64]} />
+          <meshBasicMaterial color="#38bdf8" transparent opacity={0.6} blending={THREE.AdditiveBlending} depthTest={false} toneMapped={false} />
+        </mesh>
+        <mesh renderOrder={991}>
+          <ringGeometry args={[3.4, 3.45, 64]} />
+          <meshBasicMaterial color="#fef08a" transparent opacity={0.3} blending={THREE.AdditiveBlending} depthTest={false} toneMapped={false} />
+        </mesh>
+      </group>
+
+      <Center position={[0, 0.8, 0]}>
+        <Text3D 
+          font="https://cdn.jsdelivr.net/npm/three/examples/fonts/helvetiker_bold.typeface.json"
+          size={0.24} 
+          height={0.02} 
+          curveSegments={4}
+          bevelEnabled
+          bevelThickness={0.005}
+          bevelSize={0.002}
+          bevelSegments={1}
+        >
+          THANK YOU FOR VISITING OUR EXPERIENCE
+          <meshStandardMaterial color="#38bdf8" emissive="#38bdf8" emissiveIntensity={3} toneMapped={false} depthTest={false} transparent />
+        </Text3D>
+      </Center>
+      
+      <Text position={[0, 0.1, 0]} fontSize={0.08} textAlign="center" maxWidth={4} lineHeight={1.6} renderOrder={1000}>
+        {"We truly appreciate your time, and if you have any feedback or suggestions, feel free to reach out. Your journey doesn’t end here."}
+        <meshBasicMaterial color="#e2e8f0" toneMapped={false} depthTest={false} transparent />
+      </Text>
+
+      <HologramButton position={[0, -0.5, 0]} text="CONTACT US →" primary onClick={() => navigate('/contact')} />
     </group>
   );
 }
@@ -1063,6 +1310,7 @@ function Futuristic3DUI({ currentCar, navigate }: Futuristic3DUIProps) {
       <Floating3DTitle currentCar={currentCar} />
       <InteractiveHologramPanel currentCar={currentCar} navigate={navigate} />
       <SideViewInfoPanel currentCar={currentCar} />
+      <EndSceneUI navigate={navigate} />
     </>
   );
 }
@@ -1077,8 +1325,10 @@ export function HighwayScene() {
   const navigate = useNavigate();
 
   return (
-    <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: '#030612', touchAction: 'none' }}>
+    <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: '#030612', touchAction: 'none', zIndex: 50 }}>
       
+      <OrbitInteraction />
+
       <Canvas 
         dpr={[1, 1.5]} 
         gl={{ 
@@ -1097,8 +1347,6 @@ export function HighwayScene() {
         <SmoothScrollSystem />
         <StepScrollController />
         
-        <OrbitInteraction />
-        
         <DynamicCarLighting />
 
         <Suspense fallback={null}>
@@ -1109,9 +1357,10 @@ export function HighwayScene() {
           <CinematicStars />
           <EpicMoon /> 
           
-          {/* Futuristic AAA 3D Game Showroom Features */}
           <CyberParticles />
           <Futuristic3DUI currentCar={currentCar} navigate={navigate} />
+          
+          <GlobalHUD navigate={navigate} />
           
           <ForestAmbience />
           <Mountains />

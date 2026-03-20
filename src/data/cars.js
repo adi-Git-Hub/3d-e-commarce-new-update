@@ -1,6 +1,7 @@
 export const cars = [
   {
-    id: "adyx-spectre",
+    id: 1,
+    slug: "adyx-spectre",
     name: "ADYX Spectre",
     price: 11,
     description: "A phantom on the road. Engineered with stealth technology and neural-link steering.",
@@ -24,7 +25,8 @@ export const cars = [
     themeColor: "#00F3FF" // Cyber Cyan accent
   },
   {
-    id: "adyx-nexus",
+    id: 2,
+    slug: "adyx-nexus",
     name: "ADYX Nexus",
     price: 11,
     description: "The ultimate driver's interface. Where distributed intelligence meets raw aerodynamic power.",
@@ -47,7 +49,8 @@ export const cars = [
     themeColor: "#39FF14" // Pulse Green accent
   },
   {
-    id: "adyx-vortex",
+    id: 3,
+    slug: "adyx-vortex",
     name: "ADYX Vortex",
     price: 11,
     description: "Zero-drag architecture. A mid-size powerhouse designed for the urban grid of 2030.",
@@ -70,7 +73,8 @@ export const cars = [
     themeColor: "#FF8C00" // Plasma Orange accent
   },
   {
-    id: "adyx-titan-x",
+    id: 4,
+    slug: "adyx-titan-x",
     name: "ADYX Titan X",
     price: 11,
     description: "Heavy-duty luxury. Built for off-world aesthetics and unparalleled off-road dominance.",
@@ -93,7 +97,8 @@ export const cars = [
     themeColor: "#A09383" // Earth/Tungsten accent
   },
   {
-    id: "adyx-zenith",
+    id: 5,
+    slug: "adyx-zenith",
     name: "ADYX Zenith",
     price: 11,
     description: "The peak of the ADYX fleet. A limited Grand Tourer for those who rule the skyline.",
@@ -116,7 +121,8 @@ export const cars = [
     themeColor: "#BF953F" // Solaris Gold accent
   },
   {
-    id: "adyx-apex",
+    id: 6,
+    slug: "adyx-apex",
     name: "ADYX Apex",
     price: 11,
     description: "Pure agility. Small footprint, massive intelligence. The entry point to performance.",

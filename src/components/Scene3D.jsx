@@ -9,12 +9,11 @@ export let globalCamera = null;
 export let carRef = { current: null };
 export let bgRef = { current: null };
 
-useGLTF.preload("/models/car.glb");
-
 function Car({ model }) {
   const { scene } = useGLTF(model);
   const ref = useRef();
 
+  // Apply material settings whenever scene changes
   useEffect(() => {
     scene.traverse((child) => {
       if (child.isMesh) {
@@ -28,10 +27,27 @@ function Car({ model }) {
     });
   }, [scene]);
 
+  // Dispose geometry + materials when model changes (prevent memory leak / overlap)
+  useEffect(() => {
+    return () => {
+      scene.traverse((child) => {
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) {
+          if (Array.isArray(child.material)) {
+            child.material.forEach((m) => m.dispose());
+          } else {
+            child.material.dispose();
+          }
+        }
+      });
+    };
+  }, [model]);
+
   useFrame(() => { carRef.current = ref.current; });
 
+  // key={model} forces React to fully remount when model_url changes
   return (
-    <primitive ref={ref} object={scene} scale={2.7} position={[0, -0.8, 0]} />
+    <primitive key={model} ref={ref} object={scene} scale={2.7} position={[0, -0.8, 0]} />
   );
 }
 
@@ -54,9 +70,18 @@ function Ground() {
   );
 }
 
-export default function Hero3D({ model = "/models/car.glb" }) {
+export default function Hero3D({ model = "/models/car.glb", allModels = [] }) {
   const localBgRef = useRef();
   useEffect(() => { bgRef.current = localBgRef.current; }, []);
+
+  // Preload current + all known models to prevent lag on switch
+  useEffect(() => {
+    if (model) useGLTF.preload(model);
+  }, [model]);
+
+  useEffect(() => {
+    allModels.forEach((url) => { if (url) useGLTF.preload(url); });
+  }, [allModels]);
 
   return (
     <div className="fixed inset-0 w-full h-full bg-[#050507] overflow-hidden">
