@@ -1,48 +1,60 @@
-import Scene3D from "../components/scene/Scene3D";
-import ParkingSection from "../components/ParkingSection";
-import { useEffect } from "react";
-import { globalCamera, carRef, bgRef } from "../components/Hero3D";
+import { useState, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useCars } from "../context/CarContext";
+import Scene3D from "../components/Scene3D";
+import CarStory from "../components/CarStory";
+import MarketplaceSections from "../components/MarketplaceSections";
+import Navbar from "../components/Navbar";
 
 export default function Home() {
+  const { cars, loading } = useCars();
+  const navigate = useNavigate();
+  const [currentIndex, setCurrentIndex] = useState(0);
 
-  useEffect(() => {
+  const currentCar = cars[currentIndex] || null;
 
-    const onScroll = () => {
-      const scrollY = window.scrollY;
-
-      if (globalCamera) {
-        globalCamera.position.z = 20 - scrollY * 0.01;
-      }
-
-      if (carRef.current) {
-        carRef.current.rotation.y = scrollY * 0.002;
-      }
-
-      if (bgRef.current) {
-        bgRef.current.style.transform = `scale(${1.1 + scrollY * 0.0005})`;
-      }
-    };
-
-    window.addEventListener("scroll", onScroll);
-
-    return () => window.removeEventListener("scroll", onScroll);
-
+  const handleCarChange = useCallback((index) => {
+    setCurrentIndex(index);
   }, []);
 
   return (
-    <div className="relative">
+    <div className="relative bg-black w-full">
+      {/* 3D Scene — fixed background, model swaps on scroll */}
+      <div className="fixed top-0 left-0 w-full h-screen -z-10">
+        <Scene3D 
+          model={currentCar?.model_url || "/models/car.glb"} 
+          allModels={cars.map(c => c.model_url)} 
+        />
+      </div>
 
-      {/* Road Scene */}
-      <Scene3D />
+      <div className="relative z-10">
+        <Navbar />
 
-      <section className="h-[200vh] flex items-center justify-center text-white">
-        <h1 className="text-6xl font-bold">
-          Every journey begins with a road
-        </h1>
-      </section>
+        {/* One CarStory section per car — scroll drives currentIndex */}
+        {!loading && cars.length > 0 && (
+          <CarStory cars={cars} onCarChange={handleCarChange} />
+        )}
 
-      <ParkingSection />
+        {/* 🔥 Added main-content id here for smooth scroll from login */}
+        <div id="main-content" className="min-h-screen">
+          <MarketplaceSections />
+        </div>
 
+        {/* Thank You section after last car */}
+        <div className="min-h-screen flex flex-col items-center justify-center bg-[#050507] border-t border-white/5">
+          <p className="text-white/20 text-[10px] uppercase tracking-[0.5em] mb-6">End of Collection</p>
+          <h2 className="text-5xl font-black italic uppercase tracking-tighter text-white text-center mb-4">
+            Thank you for exploring<br />our collection
+          </h2>
+          <p className="text-white/40 text-sm mb-12">We'd love to hear what you think.</p>
+          <button
+            onClick={() => navigate("/contact")}
+            className="px-10 py-4 border border-cyan-500 text-cyan-400 font-black uppercase text-[11px] tracking-[0.3em] hover:bg-cyan-500 hover:text-black transition-all"
+          >
+            Give Feedback
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

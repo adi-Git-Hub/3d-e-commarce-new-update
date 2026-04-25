@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { cars as staticCars } from "../data/cars";
 
 const CarContext = createContext();
 
@@ -8,15 +9,25 @@ export const CarProvider = ({ children }) => {
 
   const fetchCars = useCallback(async () => {
     try {
-      // cache-busting param ensures browser doesn't serve stale response
       const res = await fetch(`http://localhost:5000/api/cars?t=${Date.now()}`);
       const data = await res.json();
+      
       if (data.success) {
-        console.log("CARS:", data.data);
-        setCars(data.data);
+        // 🔥 Merge static cars with dynamic database cars
+        // Using Map to avoid duplicates if any slug matches
+        const mergedMap = new Map();
+        
+        staticCars.forEach(c => mergedMap.set(c.slug, c));
+        data.data.forEach(c => mergedMap.set(c.slug, c));
+
+        const finalCars = Array.from(mergedMap.values());
+        console.log("MERGED CARS:", finalCars);
+        setCars(finalCars);
       }
     } catch (err) {
       console.error("Failed to fetch cars:", err);
+      // If server fails, at least show static cars
+      setCars(staticCars);
     } finally {
       setLoading(false);
     }

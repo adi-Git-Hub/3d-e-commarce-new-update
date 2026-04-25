@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useParams } from "react-router-dom";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Stage, useGLTF } from "@react-three/drei";
-import { cars } from "../data/cars";
+import { useCars } from "../context/CarContext";
 
 // --- 3D ---
 const Model = ({ path }) => {
@@ -25,13 +25,10 @@ const CarCanvas = ({ modelPath }) => (
 export default function Buy() {
   const navigate = useNavigate();
   const { slug } = useParams();
+  const { cars, loading } = useCars();
   
-  // Find car using slug ONLY directly from static data
+  // Find car using slug
   const car = cars.find((c) => c.slug === slug);
-
-  console.log("Route Slug:", slug);
-  console.log("Cars from data:", cars);
-  console.log("Matched car:", car);
 
   const [step, setStep] = useState("payment");
 
@@ -41,15 +38,21 @@ export default function Buy() {
     setTimeout(() => {
       setStep("success");
       setTimeout(() => {
-        navigate("/success");
+        navigate("/success", { state: { carName: car.name } });
       }, 2000);
     }, 3500);
   };
 
   // Safety check before rendering
+  if (loading) {
+    return <div className="bg-[#050507] h-screen text-white flex items-center justify-center font-sans uppercase tracking-[0.5em]">Loading Neural Data...</div>;
+  }
+
   if (!car) {
     return <div className="bg-[#050507] h-screen text-white flex items-center justify-center font-sans uppercase tracking-[0.5em]">Car Not Found</div>;
   }
+
+  const modelPath = car.model_url || car.modelPath;
 
   return (
     <div className="min-h-screen bg-[#050507] text-white p-8 relative overflow-hidden">
@@ -86,8 +89,8 @@ export default function Buy() {
               <h1 className="text-5xl font-black italic mb-8">{car.name}</h1>
 
               <div className="h-64 w-full mb-6">
-                {car?.modelPath && (
-                  <CarCanvas modelPath={car.modelPath} />
+                {modelPath && (
+                  <CarCanvas modelPath={modelPath} />
                 )}
               </div>
 

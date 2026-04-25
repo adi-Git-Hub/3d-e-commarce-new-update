@@ -25,9 +25,9 @@ app.use("/api/payment", paymentRoutes);
 const contactRoute = require("./routes/contact");
 app.use("/api/contact", contactRoute);
 
-// 🔥 CONFLICT RESOLVED: Removed `app.use("/api/auth", authRoutes);` 
-// All auth routes are now handled by the specific app.post/get endpoints below
-// to guarantee the correct response structures (like returning the user object).
+// 🔥 AUTH ROUTES
+const authRoutes = require("./routes/auth");
+app.use("/api/auth", authRoutes);
 
 // Booking rout 
 const bookingRoutes = require("./routes/bookings");
@@ -325,14 +325,18 @@ app.post(
 
       let username = pend.rows[0].username;
 
-      // 🔥 unique username
+      // 🔥 unique username check
       const existingUser = await client.query(
         "SELECT id FROM users WHERE username = $1",
         [username]
       );
 
       if (existingUser.rows.length > 0) {
-        username = username + "_" + Math.floor(Math.random() * 9999);
+        await client.query("ROLLBACK");
+        return res.status(400).json({
+          success: false,
+          message: "Username already taken. Please choose another one.",
+        });
       }
 
       // 🔥 email check

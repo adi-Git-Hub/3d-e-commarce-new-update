@@ -1,9 +1,12 @@
 import { HighwayScene, updateScroll } from "../components/three/HighwayScene";
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
+  const navigate = useNavigate();
   const lastScroll = useRef(0);
   const [showIndicator, setShowIndicator] = useState(true);
+  const [atBottom, setAtBottom] = useState(false);
 
   useEffect(() => {
     let rafId: number;
@@ -11,15 +14,25 @@ const Index = () => {
 
     const onScroll = () => {
       cancelAnimationFrame(rafId);
-      if (!hidden && window.scrollY > 20) {
+      
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      const currentScroll = window.scrollY;
+
+      if (!hidden && currentScroll > 20) {
         hidden = true;
         setShowIndicator(false);
       }
+      
+      if (currentScroll >= maxScroll - 50) {
+        setAtBottom(true);
+      } else {
+        setAtBottom(false);
+      }
+
       rafId = requestAnimationFrame(() => {
-        const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-        const progress = maxScroll > 0 ? window.scrollY / maxScroll : 0;
-        const velocity = (window.scrollY - lastScroll.current) / window.innerHeight;
-        lastScroll.current = window.scrollY;
+        const progress = maxScroll > 0 ? currentScroll / maxScroll : 0;
+        const velocity = (currentScroll - lastScroll.current) / window.innerHeight;
+        lastScroll.current = currentScroll;
         updateScroll(Math.min(progress, 1), velocity);
       });
     };
@@ -32,6 +45,10 @@ const Index = () => {
       cancelAnimationFrame(rafId);
     };
   }, []);
+
+  const handleEnterShowroom = () => {
+    navigate("/home");
+  };
 
   return (
     <>
@@ -52,8 +69,31 @@ const Index = () => {
           color: '#FFD700',
           textShadow: '0 0 15px rgba(255,215,0,0.3)',
         }}>
-          CLOUDCAR
+          ADYX
         </div>
+
+        {/* Skip Intro Button */}
+        <button
+          onClick={handleEnterShowroom}
+          style={{
+            position: 'absolute',
+            top: 24,
+            right: 24,
+            pointerEvents: 'auto',
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            color: 'white',
+            padding: '8px 16px',
+            fontSize: '10px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.2em',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            backdropFilter: 'blur(10px)'
+          }}
+        >
+          Skip Intro
+        </button>
 
         {/* Scroll to Start */}
         <div style={{
@@ -65,7 +105,7 @@ const Index = () => {
           flexDirection: 'column',
           alignItems: 'center',
           gap: 10,
-          opacity: showIndicator ? 1 : 0,
+          opacity: (showIndicator && !atBottom) ? 1 : 0,
           transition: 'opacity 0.6s ease-out',
         }}>
           <span style={{
@@ -83,6 +123,48 @@ const Index = () => {
             height: 30,
             background: 'linear-gradient(to bottom, rgba(255,215,0,0.5), transparent)',
           }} />
+        </div>
+
+        {/* Explore Showroom Button (Appears at bottom) */}
+        <div style={{
+          position: 'absolute',
+          bottom: '15%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          opacity: atBottom ? 1 : 0,
+          transition: 'all 0.8s ease-out',
+          pointerEvents: atBottom ? 'auto' : 'none',
+          textAlign: 'center'
+        }}>
+          <h2 style={{
+            color: 'white',
+            fontSize: '2rem',
+            fontWeight: 900,
+            fontStyle: 'italic',
+            textTransform: 'uppercase',
+            marginBottom: '2rem',
+            letterSpacing: '-0.05em'
+          }}>
+            The Journey Begins
+          </h2>
+          <button
+            onClick={handleEnterShowroom}
+            style={{
+              background: '#3b82f6',
+              color: 'white',
+              border: 'none',
+              padding: '16px 48px',
+              fontSize: '12px',
+              fontWeight: 900,
+              textTransform: 'uppercase',
+              letterSpacing: '0.4em',
+              borderRadius: '99px',
+              cursor: 'pointer',
+              boxShadow: '0 0 30px rgba(59, 130, 246, 0.4)'
+            }}
+          >
+            Explore Showroom
+          </button>
         </div>
       </div>
 

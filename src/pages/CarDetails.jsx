@@ -187,8 +187,8 @@ const CarDetails = () => {
            </div>
            
            <div className="flex flex-col gap-4">
-              <button onClick={() => navigate(`/booking/${car.id}`, { state: { car, activeColor } })} className="w-full bg-white text-black py-5 font-black uppercase text-[10px] tracking-[0.4em] hover:bg-cyan-500 hover:text-white transition-all shadow-xl shadow-black">Pre-Authorize</button>
-              <button onClick={() => setShowCheckout(true)} className="w-full border border-cyan-500/50 text-cyan-500 py-5 font-black uppercase text-[10px] tracking-[0.4em] hover:bg-cyan-500/10 transition-all">Instant Deploy</button>
+              <button onClick={() => navigate(`/booking/${car.slug}`, { state: { car, activeColor } })} className="w-full bg-white text-black py-5 font-black uppercase text-[10px] tracking-[0.4em] hover:bg-cyan-500 hover:text-white transition-all shadow-xl shadow-black">Book Now</button>
+              <button onClick={() => navigate(`/buy/${car.slug}`, { state: { car, activeColor } })} className="w-full border border-cyan-500/50 text-cyan-500 py-5 font-black uppercase text-[10px] tracking-[0.4em] hover:bg-cyan-500/10 transition-all">Buy Now</button>
            </div>
         </div>
       </div>

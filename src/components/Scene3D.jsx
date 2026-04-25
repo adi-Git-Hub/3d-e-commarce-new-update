@@ -1,6 +1,6 @@
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useGLTF, Environment, ContactShadows, OrbitControls } from "@react-three/drei";
-import { Suspense, useRef, useEffect } from "react";
+import { Suspense, useRef, useEffect, useState, Component } from "react";
 import * as THREE from "three";
 import mountainBg from "../assets/mountain.png";
 import ParkingLot from "./ParkingLot";
@@ -9,12 +9,46 @@ export let globalCamera = null;
 export let carRef = { current: null };
 export let bgRef = { current: null };
 
+const FALLBACK_MODEL = "/models/car.glb";
+
+// --- Robust Error Boundary ---
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, lastModel: props.model };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.warn("3D Model failed to load, switching to fallback.", error);
+  }
+
+  // Reset error state if the model prop changes
+  static getDerivedStateFromProps(props, state) {
+    if (props.model !== state.lastModel) {
+      return { hasError: false, lastModel: props.model };
+    }
+    return null;
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <Car model={FALLBACK_MODEL} />;
+    }
+    return this.props.children;
+  }
+}
+
 function Car({ model }) {
-  const { scene } = useGLTF(model);
+  // This hook will throw an error if model is 404, caught by ErrorBoundary
+  const { scene } = useGLTF(model || FALLBACK_MODEL);
   const ref = useRef();
 
-  // Apply material settings whenever scene changes
   useEffect(() => {
+    if (!scene) return;
     scene.traverse((child) => {
       if (child.isMesh) {
         child.castShadow = true;
@@ -27,31 +61,76 @@ function Car({ model }) {
     });
   }, [scene]);
 
-  // Dispose geometry + materials when model changes (prevent memory leak / overlap)
-  useEffect(() => {
-    return () => {
-      scene.traverse((child) => {
-        if (child.geometry) child.geometry.dispose();
-        if (child.material) {
-          if (Array.isArray(child.material)) {
-            child.material.forEach((m) => m.dispose());
-          } else {
-            child.material.dispose();
-          }
-        }
-      });
-    };
-  }, [model]);
-
   useFrame(() => { carRef.current = ref.current; });
 
-  // key={model} forces React to fully remount when model_url changes
   return (
-    <primitive key={model} ref={ref} object={scene} scale={2.7} position={[0, -0.8, 0]} />
+    <primitive 
+      key={model} 
+      ref={ref} 
+      object={scene} 
+      scale={2.7} 
+      position={[0, -0.8, 0]} 
+    />
   );
 }
 
-/* 👇 YAHI PASTE KARNA HAI (Car ke niche) */
+export default function Hero3D({ model = FALLBACK_MODEL, allModels = [] }) {
+  const localBgRef = useRef();
+  useEffect(() => { bgRef.current = localBgRef.current; }, []);
+
+  // Preloading is disabled for external URLs to prevent "Uncaught 404" crashes
+  // Only preload the reliable local fallback
+  useEffect(() => {
+    useGLTF.preload(FALLBACK_MODEL);
+  }, []);
+
+  return (
+    <div className="fixed inset-0 w-full h-full bg-[#050507] overflow-hidden">
+      <img
+        ref={localBgRef}
+        src={mountainBg}
+        className="absolute inset-0 w-full h-full object-cover opacity-40 grayscale-[10%]"
+        style={{ transform: "scale(1.1)", zIndex: 0 }}
+      />
+      <div className="absolute inset-0 z-[1] pointer-events-none">
+        <Canvas
+          shadows
+          dpr={[1, 1.5]}
+          gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true }}
+          camera={{ position: [0, 2.2, 8], fov: 38 }}
+          onCreated={({ camera, scene }) => { 
+            globalCamera = camera;
+            scene.fog = new THREE.Fog("#050507", 15, 60); 
+          }}
+          onError={(e) => console.error("Canvas Error:", e)}
+        >
+          <ambientLight intensity={0.6} />
+          <directionalLight position={[10, 15, 10]} intensity={1.5} castShadow />
+          <Environment preset="sunset" />
+          
+          <Suspense fallback={null}>
+            <ErrorBoundary model={model}>
+              <Car model={model} />
+            </ErrorBoundary>
+            
+            <group position={[0, -0.1, -6]}>
+              <ParkingLot />
+            </group>
+
+            <Ground />
+            <ContactShadows position={[0, -1.05, 0]} opacity={0.8} scale={20} blur={2.5} far={4.5} />
+          </Suspense>
+
+          <OrbitControls
+            enableZoom={false}
+            enablePan={false}
+            enableRotate={true}
+          />
+        </Canvas>
+      </div>
+    </div>
+  );
+}
 
 function Ground() {
   return (
@@ -67,62 +146,5 @@ function Ground() {
         metalness={0.1}
       />
     </mesh>
-  );
-}
-
-export default function Hero3D({ model = "/models/car.glb", allModels = [] }) {
-  const localBgRef = useRef();
-  useEffect(() => { bgRef.current = localBgRef.current; }, []);
-
-  // Preload current + all known models to prevent lag on switch
-  useEffect(() => {
-    if (model) useGLTF.preload(model);
-  }, [model]);
-
-  useEffect(() => {
-    allModels.forEach((url) => { if (url) useGLTF.preload(url); });
-  }, [allModels]);
-
-  return (
-    <div className="fixed inset-0 w-full h-full bg-[#050507] overflow-hidden">
-      <img
-        ref={localBgRef}
-        src={mountainBg}
-        className="absolute inset-0 w-full h-full object-cover opacity-40 grayscale-[10%]"
-        style={{ transform: "scale(1.1)", zIndex: 0 }}
-      />
-      <div className="absolute inset-0 z-[1] pointer-events-none">
-       <Canvas
- shadows
- dpr={[1,1.5]}
- gl={{ antialias:true, alpha:true }}
- camera={{ position: [0, 2.2, 8], fov: 38 }}
-          onCreated={({ camera, scene }) => { 
-            globalCamera = camera;
-            scene.fog = new THREE.Fog("#050507", 15, 60); 
-          }}
-        >
-          <ambientLight intensity={0.6} />
-          <directionalLight position={[10, 15, 10]} intensity={1.5} castShadow />
-          <Environment preset="sunset" />
-          <Suspense fallback={null}>
- <Car model={model} />
-
-  {/* parking cars */}
- <group position={[0,-0.1,-6]}>
-  <ParkingLot />
-</group>
-
-  <Ground />
-  <ContactShadows position={[0,-1.05,0]} opacity={0.8} scale={20} blur={2.5} far={4.5} />
-</Suspense>
-         <OrbitControls
-  enableZoom={false}
-  enablePan={false}
-  enableRotate={true}
-/>
-        </Canvas>
-      </div>
-    </div>
   );
 }

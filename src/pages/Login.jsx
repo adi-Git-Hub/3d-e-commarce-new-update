@@ -38,14 +38,14 @@ export default function Login() {
       }
 
       // ✅ Store token + role in context
-      login(data.token, data.role || "user");
+      login(data.user, data.token);
 
       // ✅ Session handling
       localStorage.setItem("token", data.token);
-      localStorage.setItem("role", data.role || "user");
+      localStorage.setItem("role", data.user.role || "user");
 
-      // 🔥 FIXED: Login ke baad seedha "The Present" section par scroll karega
-      navigate("/#main-content");
+      // 🔥 FIXED: Login ke baad intro par bhejega
+      navigate("/intro");
 
     } catch (error) {
       setLoading(false);

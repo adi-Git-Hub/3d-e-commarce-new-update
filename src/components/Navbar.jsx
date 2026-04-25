@@ -12,10 +12,10 @@ const Navbar = () => {
 
   useEffect(() => {
     if (!loading && user && (location.pathname === "/login" || location.pathname === "/register")) {
-      navigate("/#main-content", { replace: true });
+      navigate("/home#main-content", { replace: true });
     }
 
-    if (location.pathname !== "/") {
+    if ((location.pathname !== "/" && location.pathname !== "/intro") || location.hash === "#main-content") {
       setVisible(true);
     } else {
       const handleScroll = () => {

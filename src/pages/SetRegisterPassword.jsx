@@ -60,7 +60,8 @@ export default function SetRegisterPassword() {
       }
 
       sessionStorage.clear();
-      navigate("/login");
+      // 🔥 FIXED: Registration ke baad intro par bhejega
+      navigate("/intro");
     } catch (err) {
       setLoading(false);
       alert("Server error");

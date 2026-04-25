@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { cars } from "../data/cars";
+import { useCars } from "../context/CarContext";
 import BookingCarViewer from "../components/BookingCarViewer";
 import emailjs from "@emailjs/browser";
 import axios from "axios"; 
@@ -9,12 +9,12 @@ import confetti from "canvas-confetti";
 const Booking = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const loading = false;
+  const { cars, loading } = useCars();
 
   const car = cars.find((c) => c.slug === slug);
 
   console.log("Route Slug:", slug);
-  console.log("Cars from data:", cars);
+  console.log("Cars from context:", cars);
   console.log("Matched car:", car);
 
   const [isSending, setIsSending] = useState(false);
@@ -35,6 +35,8 @@ const Booking = () => {
   if (!car) {
     return <div className="bg-[#050507] h-screen text-white flex items-center justify-center font-sans uppercase tracking-[0.5em]">Car Not Found</div>;
   }
+
+  const modelPath = car.model_url || car.modelPath;
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -132,8 +134,8 @@ const Booking = () => {
           </div>
 
           <div className="relative w-full h-full flex items-center justify-center scale-125">
-             {car?.modelPath && (
-               <BookingCarViewer modelPath={car.modelPath} />
+             {modelPath && (
+               <BookingCarViewer modelPath={modelPath} />
              )}
           </div>
 

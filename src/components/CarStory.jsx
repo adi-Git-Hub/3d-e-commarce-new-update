@@ -67,13 +67,19 @@ function CarSection({ car }) {
         style={{ opacity: 0 }}
       >
         <button
-          onClick={() => navigate(`/car/${car.slug || car.id}`)}
+          onClick={() => navigate(`/car/${car.slug}`)}
           className="px-8 py-4 bg-white text-black font-bold hover:bg-cyan-400 transition-colors"
         >
           Explore
         </button>
         <button
-          onClick={() => navigate(`/payment/${car.id}`)}
+          onClick={() => navigate(`/booking/${car.slug}`)}
+          className="px-8 py-4 border border-white text-white font-bold hover:border-blue-500 hover:text-blue-500 transition-colors"
+        >
+          Book
+        </button>
+        <button
+          onClick={() => navigate(`/buy/${car.slug}`)}
           className="px-8 py-4 border border-white text-white font-bold hover:border-cyan-400 hover:text-cyan-400 transition-colors"
         >
           Buy
