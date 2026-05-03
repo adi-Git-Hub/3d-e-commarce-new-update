@@ -5,6 +5,7 @@ import BookingCarViewer from "../components/BookingCarViewer";
 import emailjs from "@emailjs/browser";
 import axios from "axios"; 
 import confetti from "canvas-confetti";
+import { motion, AnimatePresence } from "framer-motion";
 
 const Booking = () => {
   const { slug } = useParams();
@@ -12,10 +13,6 @@ const Booking = () => {
   const { cars, loading } = useCars();
 
   const car = cars.find((c) => c.slug === slug);
-
-  console.log("Route Slug:", slug);
-  console.log("Cars from context:", cars);
-  console.log("Matched car:", car);
 
   const [isSending, setIsSending] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -30,10 +27,15 @@ const Booking = () => {
     specialRequest: "",
   });
 
-  if (loading) return <div className="bg-[#050507] h-screen text-white flex items-center justify-center font-sans uppercase tracking-[0.5em]">Initializing ADYX...</div>;
+  if (loading) return (
+    <div className="bg-[#020205] h-screen text-blue-500 flex flex-col items-center justify-center font-sans uppercase tracking-[1em] animate-pulse">
+      <div className="w-16 h-16 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mb-8" />
+      Syncing Neural Hub
+    </div>
+  );
   
   if (!car) {
-    return <div className="bg-[#050507] h-screen text-white flex items-center justify-center font-sans uppercase tracking-[0.5em]">Car Not Found</div>;
+    return <div className="bg-[#020205] h-screen text-white flex items-center justify-center font-sans uppercase tracking-[0.5em]">Neural Link Failed: Asset Not Found</div>;
   }
 
   const modelPath = car.model_url || car.modelPath;
@@ -48,22 +50,18 @@ const Booking = () => {
 
     try {
       const token = localStorage.getItem("token");
-
-      // 🔥 STEP 1: Database mein premium booking save karo
-      // Isme price, duration aur location backend ko ja rahe hain
       await axios.post("http://localhost:5000/api/bookings/reserve", {
         car_name: car.name,
         car_model_id: car.id,
         booking_type: formData.bookingType,
         city: formData.city,
-        price: car.price, // Car data se price uthayega
-        duration: "Full-Ownership", // Static for premium feel
-        pickup_location: `ADYX ${formData.city} Experience Center` // Location sync
+        price: car.price,
+        duration: "Full-Ownership",
+        pickup_location: `ADYX ${formData.city} Experience Center`
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      // 📧 STEP 2: EmailJS Confirmation bhejo
       const templateParams = {
         user_name: formData.fullName,
         user_email: formData.email,
@@ -86,7 +84,7 @@ const Booking = () => {
         particleCount: 150,
         spread: 70,
         origin: { y: 0.6 },
-        colors: ['#3b82f6', '#ffffff']
+        colors: ['#2563eb', '#7c3aed', '#ffffff']
       });
 
     } catch (err) {
@@ -98,98 +96,202 @@ const Booking = () => {
 
   if (isSubmitted) {
     return (
-      <div className="min-h-screen bg-[#050507] text-white flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-1000">
-        <div className="space-y-6 max-w-2xl">
-          <h2 className="text-7xl font-black italic uppercase tracking-tighter leading-none">Legend Reserved.</h2>
-          <p className="text-blue-500 font-bold uppercase tracking-[0.4em] text-sm italic">The ADYX Concierge will reach out soon.</p>
-          <div className="py-12">
-             <div className="h-[1px] w-24 bg-white/20 mx-auto" />
-          </div>
-          <p className="text-white/40 tracking-widest text-[10px] leading-loose max-w-md mx-auto normal-case">
-            A confirmation for your <span className="text-white font-bold uppercase">{car.name}</span> has been sent to <span className="text-blue-400">{formData.email}</span>.
-          </p>
-          <button 
-            onClick={() => navigate("/profile")} 
-            className="mt-12 bg-white text-black px-12 py-5 rounded-none font-black uppercase tracking-[0.3em] text-[10px] hover:bg-blue-600 hover:text-white transition-all duration-500"
-          >
-            Go To Concierge Log
-          </button>
-        </div>
+      <div className="min-h-screen bg-[#020205] text-white flex flex-col items-center justify-center p-6 text-center">
+        <h2 className="text-8xl font-black italic uppercase tracking-tighter mb-4">RESERVED.</h2>
+        <p className="text-blue-500 uppercase tracking-widest font-bold">The ADYX Concierge will contact you shortly.</p>
+        <button onClick={() => navigate("/profile")} className="mt-12 px-12 py-5 bg-blue-600 font-black uppercase text-xs">Return to Vault</button>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#050507] text-white font-sans selection:bg-blue-500 selection:text-white pt-20 italic">
-      <div className="fixed top-20 left-10 opacity-[0.02] pointer-events-none select-none">
-        <h1 className="text-[20vw] font-black italic uppercase leading-none">ADYX</h1>
-      </div>
+    <div className="min-h-screen bg-[#010103] text-white font-sans overflow-x-hidden relative">
+      
+      {/* ── FORCE RENDER STYLES ── */}
+      <style>{`
+        .model-stage {
+          position: relative;
+          width: 100%;
+          height: 600px; /* Lock height */
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: visible !important;
+          z-index: 10;
+        }
 
-      <div className="max-w-screen-2xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-0 min-h-screen">
-        <div className="lg:col-span-7 p-8 lg:p-20 flex flex-col justify-between sticky top-0 h-screen">
-          <div className="space-y-2">
-            <span className="text-blue-500 font-bold uppercase tracking-[0.4em] text-xs">Premium Selection</span>
-            <h1 className="text-8xl font-black italic uppercase tracking-tighter leading-none">{car.name}</h1>
-            <p className="text-2xl text-white/40 italic font-light capitalize">{car.variant || "Performance Edition"}</p>
-          </div>
+        /* 1. FORCE PLATFORM VISIBILITY (Z-INDEX 0) */
+        .model-stage::after {
+          content: "";
+          position: absolute;
+          bottom: 40px;
+          left: 50%;
+          transform: translateX(-50%) scaleX(1.8);
+          width: 500px;
+          height: 140px;
+          background: radial-gradient(
+            ellipse at center,
+            rgba(37, 99, 235, 0.7) 0%,
+            rgba(37, 99, 235, 0.3) 30%,
+            rgba(124, 58, 237, 0.1) 60%,
+            transparent 75%
+          );
+          filter: blur(30px);
+          border-radius: 50%;
+          z-index: 0;
+          pointer-events: none;
+        }
 
-          <div className="relative w-full h-full flex items-center justify-center scale-125">
-             {modelPath && (
+        /* 2. STRONG SPOTLIGHT (Z-INDEX 0) */
+        .model-stage::before {
+          content: "";
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 700px;
+          height: 500px;
+          background: radial-gradient(
+            circle,
+            rgba(37, 99, 235, 0.25) 0%,
+            rgba(124, 58, 237, 0.15) 40%,
+            transparent 70%
+          );
+          z-index: 0;
+          pointer-events: none;
+        }
+
+        .canvas-wrapper {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          z-index: 10; /* Ensure canvas is ABOVE the platform */
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          animation: stageBreathe 5s ease-in-out infinite;
+        }
+
+        @keyframes stageBreathe {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-15px); }
+        }
+
+        .glass-console {
+          background: rgba(10, 10, 15, 0.8);
+          backdrop-filter: blur(20px);
+          border-left: 1px solid rgba(255, 255, 255, 0.1);
+          z-index: 20;
+        }
+      `}</style>
+
+      {/* Cinematic Vignette */}
+      <div className="fixed inset-0 shadow-[inset_0_0_300px_rgba(0,0,0,1)] pointer-events-none z-20" />
+
+      <div className="max-w-screen-2xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-0 min-h-screen relative z-10">
+        
+        {/* ── LEFT SIDE: THE CINEMATIC STAGE ── */}
+        <div className="lg:col-span-7 flex flex-col justify-between p-8 lg:p-20 relative overflow-visible">
+          
+          <motion.div 
+            initial={{ opacity: 0, x: -50 }} 
+            animate={{ opacity: 1, x: 0 }}
+            className="space-y-4 relative z-30"
+          >
+            <div className="flex items-center gap-4">
+              <span className="h-[2px] w-12 bg-blue-500 shadow-[0_0_10px_#2563eb]" />
+              <span className="text-blue-500 font-black uppercase tracking-[0.6em] text-[10px]">NEURAL ASSET // IDENTIFIED</span>
+            </div>
+            <h1 className="text-7xl md:text-9xl font-black italic uppercase tracking-tighter leading-[0.8] text-white">
+              {car.name}
+            </h1>
+            <p className="text-2xl text-neutral-500 italic font-light tracking-[0.2em] uppercase border-l-4 border-blue-600 pl-8 ml-2">
+              {car.variant || "Performance Edition"}
+            </p>
+          </motion.div>
+
+          {/* 🏎️ THE GROUNDED STAGE (FIXED VISIBILITY) */}
+          <div className="model-stage">
+            <div className="canvas-wrapper">
                <BookingCarViewer modelPath={modelPath} />
-             )}
-          </div>
-
-          <div className="flex items-end justify-between border-t border-white/5 pt-8 min-w-0">
-            <p className="text-3xl md:text-4xl font-mono break-all font-bold tracking-tighter">
-  ₹{new Intl.NumberFormat("en-IN").format(car.price)}
-</p>
-            <div className="text-right space-y-1">
-               <p className="text-[10px] text-white/30 uppercase tracking-widest font-bold">Delivery Status</p>
-               <p className="text-xl italic font-bold">8-12 WEEKS</p>
             </div>
           </div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }} 
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-end justify-between border-t border-white/5 pt-12 relative z-50"
+          >
+            <div className="space-y-1">
+              <p className="text-[10px] text-blue-500 font-black uppercase tracking-[0.5em]">MARKET VALUATION</p>
+              <p className="text-6xl md:text-7xl font-mono font-black tracking-tighter text-white">
+                ₹{new Intl.NumberFormat("en-IN").format(car.price)}
+              </p>
+            </div>
+            <div className="text-right">
+               <p className="text-[10px] text-neutral-600 uppercase tracking-[0.5em] mb-2">ALLOCATION</p>
+               <p className="text-2xl italic font-black text-white px-6 py-2 bg-blue-600/10 border border-blue-500/20">8-12 WEEKS</p>
+            </div>
+          </motion.div>
         </div>
 
-        <div className="lg:col-span-5 bg-white/[0.01] backdrop-blur-3xl border-l border-white/5 p-8 lg:p-20 flex flex-col justify-center">
-          <div className="max-w-md mx-auto w-full space-y-12">
-            <div className="space-y-4">
-              <h2 className="text-3xl font-black italic uppercase tracking-tight">Reserve Your Legend</h2>
-              <p className="text-white/40 text-[11px] uppercase tracking-widest leading-relaxed">Fill in your details to begin the bespoke acquisition process.</p>
+        {/* ── RIGHT SIDE: COMMAND CONSOLE ── */}
+        <div className="lg:col-span-5 glass-console min-h-screen flex flex-col justify-center p-12 lg:p-24 relative z-50 shadow-[-50px_0_100px_rgba(0,0,0,0.9)]">
+          
+          <div className="max-w-md mx-auto w-full space-y-16">
+            <div className="space-y-6">
+              <h2 className="text-5xl font-black italic uppercase tracking-tight leading-[0.85]">Initialize <br/> <span className="text-blue-500">Ownership</span></h2>
+              <p className="text-neutral-500 text-[12px] uppercase tracking-[0.3em] font-bold">Sync your profile with the ADYX distributed ledger.</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-8">
-              <div className="space-y-6">
-                <input type="text" name="fullName" required placeholder="Full Name" value={formData.fullName} onChange={handleChange} 
-                  className="w-full bg-transparent border-b border-white/10 py-4 outline-none focus:border-blue-500 transition-all placeholder:text-white/20 text-sm tracking-widest capitalize font-bold" />
-                <div className="grid grid-cols-2 gap-8">
-                  <input type="tel" name="phone" required placeholder="Phone" value={formData.phone} onChange={handleChange} 
-                    className="w-full bg-transparent border-b border-white/10 py-4 outline-none focus:border-blue-500 transition-all placeholder:text-white/20 text-sm tracking-widest font-bold" />
-                  <input type="text" name="city" required placeholder="City" value={formData.city} onChange={handleChange} 
-                    className="w-full bg-transparent border-b border-white/10 py-4 outline-none focus:border-blue-500 transition-all placeholder:text-white/20 text-sm tracking-widest capitalize font-bold" />
+            <form onSubmit={handleSubmit} className="space-y-12">
+              <div className="space-y-10">
+                {/* Name */}
+                <div className="group relative">
+                  <input type="text" name="fullName" required placeholder="HOLDER NAME" value={formData.fullName} onChange={handleChange} 
+                    className="w-full bg-transparent border-b-2 border-white/10 py-5 outline-none focus:border-blue-500 transition-all placeholder:text-neutral-800 text-sm tracking-[0.4em] font-black uppercase" />
+                  <div className="absolute bottom-0 left-0 w-0 h-[2px] bg-blue-500 group-focus-within:w-full transition-all duration-500 shadow-[0_0_15px_#2563eb]" />
                 </div>
-                <input type="email" name="email" required placeholder="Email Address" value={formData.email} onChange={handleChange} 
-                  className="w-full bg-transparent border-b border-white/10 py-4 outline-none focus:border-blue-500 transition-all placeholder:text-white/20 text-sm tracking-widest font-bold" />
+
+                {/* City */}
+                <div className="group relative">
+                  <input type="text" name="city" required placeholder="GRID ZONE / SECTOR" value={formData.city} onChange={handleChange} 
+                    className="w-full bg-transparent border-b-2 border-white/10 py-5 outline-none focus:border-blue-500 transition-all placeholder:text-neutral-800 text-sm tracking-[0.4em] font-black uppercase" />
+                  <div className="absolute bottom-0 left-0 w-0 h-[2px] bg-blue-500 group-focus-within:w-full transition-all duration-500 shadow-[0_0_15px_#2563eb]" />
+                </div>
+
+                {/* Email */}
+                <div className="group relative">
+                  <input type="email" name="email" required placeholder="NEURAL IDENTITY (EMAIL)" value={formData.email} onChange={handleChange} 
+                    className="w-full bg-transparent border-b-2 border-white/10 py-5 outline-none focus:border-blue-500 transition-all placeholder:text-neutral-800 text-sm tracking-[0.4em] font-black uppercase" />
+                  <div className="absolute bottom-0 left-0 w-0 h-[2px] bg-blue-500 group-focus-within:w-full transition-all duration-700 shadow-[0_0_25px_#2563eb]" />
+                </div>
               </div>
 
-              <div className="space-y-4">
-                <p className="text-[10px] text-white/30 uppercase tracking-[0.3em] font-bold">Booking Type</p>
-                <div className="flex gap-4">
+              <div className="space-y-6">
+                <p className="text-[10px] text-neutral-600 uppercase tracking-[0.6em] font-black">DEPLOYMENT MODE</p>
+                <div className="flex gap-4 p-2 bg-black/40 border border-white/5 rounded-[1rem]">
                   {["Test Drive", "Direct Booking"].map((type) => (
                     <button key={type} type="button" onClick={() => setFormData({...formData, bookingType: type})} 
-                      className={`flex-1 py-4 border transition-all text-[9px] font-black uppercase tracking-widest ${formData.bookingType === type ? "bg-white text-black border-white" : "bg-transparent border-white/10 text-white/40 hover:border-white/30"}`}>
+                      className={`flex-1 py-5 transition-all duration-500 text-[10px] font-black uppercase tracking-widest rounded-xl ${formData.bookingType === type ? "bg-blue-600 text-white shadow-[0_10px_30px_rgba(37,99,235,0.4)] border border-blue-400" : "bg-transparent text-neutral-700 hover:text-white"}`}>
                       {type}
                     </button>
                   ))}
                 </div>
               </div>
 
-              <button type="submit" disabled={isSending} 
-                className={`w-full py-6 font-black uppercase tracking-[0.4em] text-xs transition-all duration-500 ${isSending ? 'bg-white/5 text-white/20 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-white hover:text-black shadow-[0_20px_50px_rgba(59,130,246,0.2)] hover:shadow-none'}`}>
-                {isSending ? "Processing Request..." : "Confirm Reservation"}
-              </button>
+              <motion.button 
+                type="submit" 
+                disabled={isSending}
+                whileHover={{ scale: 1.05, y: -5 }}
+                whileTap={{ scale: 0.95 }}
+                className={`w-full py-9 font-black uppercase tracking-[1em] text-[13px] transition-all duration-700 relative overflow-hidden group shadow-[0_30px_80px_rgba(37,99,235,0.5)] ${isSending ? 'bg-neutral-900 text-neutral-700' : 'bg-blue-600 text-white border-2 border-blue-400'}`}
+              >
+                <span className="relative z-10">{isSending ? "ENCRYPTING..." : "AUTHORIZE"}</span>
+              </motion.button>
             </form>
 
-            <p className="text-[8px] text-center text-white/20 uppercase tracking-[0.5em]">© 2026 ADYX AUTOMOTIVE GROUP</p>
+            <p className="text-[9px] text-center text-neutral-700 uppercase tracking-[0.8em] font-black">© 2026 ADYX TERMINAL // SECURE</p>
           </div>
         </div>
       </div>

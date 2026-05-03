@@ -1124,8 +1124,9 @@ function InteractiveHologramPanel({ currentCar, navigate }: Futuristic3DUIProps)
        
        <HologramButton position={[0, 0.20, 0]} text="BOOK NOW" primary onClick={() => car?.slug && navigate(`/booking/${car.slug}`)} />
        <HologramButton position={[0, -0.05, 0]} text="BUY NOW" primary onClick={() => car?.slug && navigate(`/buy/${car.slug}`)} />
-       <HologramButton position={[0, -0.30, 0]} text="MORE INFO" onClick={() => car?.slug && navigate(`/car/${car.slug}`)} />
+       <HologramButton position={[0, -0.30, 0]} text="MORE INFO" onClick={() => navigate('/showroom')} />
        <HologramButton position={[0, -0.55, 0]} text={showDetails ? "HIDE STATS" : "QUICK STATS"} onClick={() => setShowDetails(!showDetails)} />
+
 
        <group ref={detailsRef} position={[1.4, -0.1, 0]} scale={0}>
           <mesh renderOrder={998}>

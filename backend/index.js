@@ -260,19 +260,25 @@ app.post("/api/auth/register-step1", async (req, res) => {
     );
 
     // Email send
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-    });
+    try {
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+      });
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: "ADYX OTP",
-      html: `<h2>${otp}</h2>`,
-    });
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: "ADYX OTP",
+        html: `<h2>${otp}</h2>`,
+      });
+      console.log(`OTP sent to ${email}`);
+    } catch (emailErr) {
+      console.error("EMAIL SEND ERROR:", emailErr.message);
+      console.log(`[DEVELOPMENT] OTP for ${email} is: ${otp}`);
+    }
 
-    res.json({ success: true });
+    res.json({ success: true, message: "OTP sent (check console in dev)" });
 
   } catch (err) {
     console.error("REGISTER STEP1 ERROR:", err);
@@ -618,4 +624,8 @@ app.delete("/api/admin/delete-car/:id", authenticateToken, isAdmin, async (req, 
 });
 
 const PORT = process.env.PORT || 5000;
+
+// 🔥 INJECT NEW ADMIN UPGRADE FEATURES
+require("./routes/adminFeatures")(app, pool, authenticateToken, isAdmin);
+
 app.listen(PORT, () => console.log("Server running on", PORT));

@@ -47,7 +47,7 @@ const Index = () => {
   }, []);
 
   const handleEnterShowroom = () => {
-    navigate("/home");
+    navigate("/showroom");
   };
 
   return (

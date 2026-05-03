@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCars } from '../context/CarContext';
 import CarPreview from '../three/CarPreview';
@@ -7,203 +7,362 @@ import CarPreview from '../three/CarPreview';
 const CarDetails = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { cars, loading } = useCars();
-  // match strictly by slug
-  const car = cars.find((c) => c.slug === slug);
-
-  console.log("Route slug:", slug);
-  console.log("Cars from context:", cars);
-  console.log("Matched car:", car);
   
+  // match strictly by slug
+  const car = cars?.find((c) => c.slug === slug);
+  const isPurchased = location.state?.purchased || false;
+
   const [activeColor, setActiveColor] = useState("#050505");
   const [showCheckout, setShowCheckout] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [isProcessing, setIsProcessing] = useState(false);
   const [processMessage, setProcessMessage] = useState("");
 
-  if (loading) return <div className="h-screen bg-black text-white flex items-center justify-center font-black uppercase tracking-[1em]">Loading...</div>;
-  if (!car) return <div className="h-screen bg-black text-white flex items-center justify-center font-black uppercase tracking-[1em]">Neural Node Not Found</div>;
+  // Update color if car has colors
+  useEffect(() => {
+    if (car?.colors?.length > 0) {
+      setActiveColor(car.colors[0].hex);
+    }
+  }, [car]);
+
+  if (loading) {
+    return (
+      <div className="h-screen bg-black text-cyan-500 flex flex-col items-center justify-center font-black uppercase tracking-[1em]">
+        <div className="w-16 h-16 border-2 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin mb-8" />
+        Initializing Dashboard...
+      </div>
+    );
+  }
+
+  if (!car) {
+    return (
+      <div className="h-screen bg-black text-white flex flex-col items-center justify-center font-black uppercase tracking-[0.5em] gap-8">
+        <p className="text-cyan-500 animate-pulse text-2xl">Neural Node Not Found</p>
+        <button 
+          onClick={() => navigate("/cars")}
+          className="px-8 py-4 border border-cyan-500/50 text-cyan-500 text-xs tracking-widest hover:bg-cyan-500/10 transition-all"
+        >
+          Return to Fleet Hub
+        </button>
+      </div>
+    );
+  }
+
+  const modelPath = car.model_url || car.modelPath;
 
   const handlePayment = async (e) => {
-  if (e) e.preventDefault();
+    if (e) e.preventDefault();
 
-  setIsProcessing(true);
-  setProcessMessage(
-    paymentMethod === "card"
-      ? "Encrypting Neural Authorization..."
-      : "Handshaking with UPI Gateway..."
-  );
+    setIsProcessing(true);
+    setProcessMessage(
+      paymentMethod === "card"
+        ? "Encrypting Neural Authorization..."
+        : "Handshaking with UPI Gateway..."
+    );
 
-  try {
-    await fetch("http://localhost:5000/api/payment/success", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${localStorage.getItem("token")}`,
-  },
-  body: JSON.stringify({
-    carName: car.name,
-  }),
-});
+    try {
+      await fetch("http://localhost:5000/api/payment/success", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          carName: car.name,
+        }),
+      });
 
-    setTimeout(() => {
-      navigate("/payment-success", { state: { carName: car.name } });
-    }, 2000);
-  } catch (error) {
-    console.error("Payment API Error:", error);
-  }
-};
+      setTimeout(() => {
+        navigate("/payment-success", { state: { carName: car.name, carSlug: car.slug, purchased: true } });
+      }, 2000);
+    } catch (error) {
+      console.error("Payment API Error:", error);
+      setIsProcessing(false);
+    }
+  };
 
   return (
     <div className="flex flex-col lg:flex-row h-screen bg-[#020203] overflow-hidden font-sans selection:bg-cyan-500">
       
+      {/* Custom Styles for Stage */}
+      <style>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-15px); }
+        }
+        .stage-base {
+          position: absolute;
+          bottom: 15%;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 80%;
+          height: 15%;
+          background: radial-gradient(ellipse at center, rgba(0, 245, 255, 0.15) 0%, transparent 70%);
+          filter: blur(20px);
+          z-index: 1;
+        }
+        .stage-shadow {
+          position: absolute;
+          bottom: 22%;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 60%;
+          height: 5%;
+          background: rgba(0, 0, 0, 0.8);
+          filter: blur(15px);
+          border-radius: 100%;
+          z-index: 2;
+        }
+        .stage-highlight {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 100%;
+          height: 100%;
+          background: radial-gradient(circle at center, rgba(37, 99, 235, 0.05) 0%, transparent 60%);
+          z-index: 0;
+        }
+        .car-container {
+          filter: brightness(1.1) contrast(1.05);
+          animation: float 6s ease-in-out infinite;
+        }
+      `}</style>
+
       {/* LEFT: THE INTELLIGENCE VIEW */}
-      <div className="flex-[1.8] h-[55vh] lg:h-full relative flex items-center justify-center bg-[#050507] overflow-hidden group">
+      <div className="flex-[1.5] h-[45vh] lg:h-full relative flex items-center justify-center bg-[#050507] overflow-hidden group">
         
-        {/* Spotlight Glow */}
+        {/* Background stage lighting */}
+        <div className="stage-highlight" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-64 bg-cyan-500/5 blur-[100px] pointer-events-none" />
         
-        {/* Animated Left Edge Line */}
-        <motion.div 
-          animate={{ height: ["10%", "40%", "10%"], opacity: [0.2, 0.5, 0.2] }}
-          transition={{ duration: 4, repeat: Infinity }}
-          className="absolute left-2 top-1/4 w-[1px] bg-cyan-500 z-20"
-        />
+        {/* Grounding elements */}
+        <div className="stage-base" />
+        <div className="stage-shadow" />
 
         {/* Floor Reflection Gradient */}
-        <div className="absolute bottom-0 w-full h-[30%] bg-gradient-to-t from-cyan-500/10 to-transparent pointer-events-none z-0" />
+        <div className="absolute bottom-0 w-full h-[40%] bg-gradient-to-t from-cyan-500/10 via-transparent to-transparent pointer-events-none z-0" />
 
         <div className="absolute top-10 left-10 z-20 space-y-3">
             <div className="flex items-center gap-3 text-[10px] font-black text-cyan-500 tracking-[0.3em] uppercase">
-                <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" /> Edge Network Online
+                <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse shadow-[0_0_10px_#06b2d2]" /> 
+                {isPurchased ? "Ownership Active" : "Edge Network Online"}
             </div>
             <div className="flex flex-col gap-1">
-               <span className="text-[7px] text-white/20 uppercase tracking-widest">Global Latency: 0.04ms</span>
-               <span className="text-[7px] text-white/20 uppercase tracking-widest">Encryption: AES-256</span>
+               <span className="text-[7px] text-white/20 uppercase tracking-widest font-mono">Sync_Node: {car.id}04X</span>
+               <span className="text-[7px] text-white/20 uppercase tracking-widest font-mono">Channel: Encrypted_AES</span>
             </div>
         </div>
 
-        <div className="absolute top-10 right-10 z-20 text-right opacity-30">
-            <p className="text-[8px] font-mono text-white uppercase tracking-tighter">System_Ref: {car.slug.toUpperCase()}</p>
-            <p className="text-[8px] font-mono text-white uppercase tracking-tighter">Coord: 28.6139° N, 77.2090° E</p>
-        </div>
-
-        <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] select-none pointer-events-none">
-          <h1 className="text-[20vw] font-black italic uppercase tracking-tighter text-white leading-none">
-            {car.name.split(' ')[1] || car.name}
+        <div className="absolute inset-0 flex items-center justify-center opacity-[0.02] select-none pointer-events-none">
+          <h1 className="text-[25vw] font-black italic uppercase tracking-tighter text-white leading-none">
+            {car?.name?.split(' ')[1] || car?.name || "CAR"}
           </h1>
         </div>
 
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative z-10 w-full h-full flex items-center justify-center">
-          <CarPreview modelPath={car.model_url} paintColor={activeColor} autoRotate={false} />
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }} 
+          animate={{ opacity: 1, scale: 1 }} 
+          transition={{ duration: 1.5 }}
+          className="relative z-10 w-full h-full flex items-center justify-center car-container"
+        >
+          {modelPath && (
+            <CarPreview modelPath={modelPath} paintColor={activeColor} autoRotate={true} />
+          )}
         </motion.div>
 
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-20 w-full max-w-2xl px-6">
-          <div className="bg-white/[0.02] backdrop-blur-3xl border border-white/10 rounded-2xl p-6 flex justify-around items-center shadow-[0_0_50px_rgba(0,0,0,0.5)]">
-            <div className="text-center">
-              <p className="text-[7px] font-black text-cyan-500 uppercase tracking-widest mb-1">AI Score</p>
-              <p className="text-2xl font-black italic text-white tracking-tighter">94%</p>
-            </div>
-            <div className="h-8 w-[1px] bg-white/5" />
-            <div className="text-center">
-              <p className="text-[7px] font-black text-cyan-500 uppercase tracking-widest mb-1">Compute</p>
-              <p className="text-2xl font-black italic text-white tracking-tighter uppercase">Edge</p>
-            </div>
-            <div className="h-8 w-[1px] bg-white/5" />
-            <div className="text-center">
-              <p className="text-[7px] font-black text-cyan-500 uppercase tracking-widest mb-1">Sync</p>
-              <p className="text-2xl font-black italic text-white tracking-tighter">L4</p>
-            </div>
-          </div>
+        {/* Floating Asset Stats */}
+        <div className="absolute bottom-12 left-12 z-20 hidden md:block">
+           <div className="space-y-6">
+              <div className="p-4 bg-white/[0.02] backdrop-blur-md border border-white/5 rounded-xl">
+                 <p className="text-[8px] text-cyan-400 font-bold uppercase tracking-widest mb-1">Current Health</p>
+                 <div className="w-32 h-1 bg-white/10 rounded-full overflow-hidden">
+                    <motion.div initial={{ width: 0 }} animate={{ width: "98%" }} transition={{ duration: 2, delay: 1 }} className="h-full bg-cyan-500 shadow-[0_0_10px_#06b2d2]" />
+                 </div>
+              </div>
+              <div className="p-4 bg-white/[0.02] backdrop-blur-md border border-white/5 rounded-xl">
+                 <p className="text-[8px] text-blue-400 font-bold uppercase tracking-widest mb-1">Neural Sync</p>
+                 <p className="text-xl font-mono text-white">100%</p>
+              </div>
+           </div>
         </div>
       </div>
 
-      {/* RIGHT: SYSTEM CONFIGURATION CONSOLE */}
-      <div className="w-full lg:w-[480px] h-full bg-[#08080a] bg-[radial-gradient(circle_at_top_right,_rgba(6,182,212,0.05),_transparent)] border-l border-white/5 p-12 lg:p-16 flex flex-col justify-between relative z-30 shadow-[-30px_0_100px_rgba(0,0,0,0.8)] overflow-y-auto">
-        {/* Diagonal Pattern Overlay */}
-        <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ backgroundImage: `repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 0, transparent 50%)`, backgroundSize: '10px 10px' }} />
-
-        <div className="space-y-10 relative z-10">
+      {/* RIGHT: COMMAND & OWNERSHIP CONSOLE */}
+      <div className="w-full lg:w-[580px] h-full bg-[#08080a] border-l border-white/5 flex flex-col relative z-30 shadow-[-30px_0_100px_rgba(0,0,0,0.8)] overflow-y-auto custom-scrollbar">
+        
+        <div className="p-8 lg:p-12 space-y-12">
+          
+          {/* ── HEADER ── */}
           <div className="space-y-4">
-            <h1 className="text-6xl font-black italic uppercase tracking-tighter text-white leading-none">
-              {car.name}<span className="text-cyan-500">.</span>
-            </h1>
-            <p className="text-white/40 text-[10px] uppercase leading-relaxed tracking-widest border-l border-white/10 pl-4 italic">
-               Distributed intelligence architecture. Real-time neural optimization.
+            <div className="flex justify-between items-start">
+               <h1 className="text-5xl font-black italic uppercase tracking-tighter text-white leading-none">
+                 {car?.name}<span className="text-cyan-500">.</span>
+               </h1>
+               <div className="px-3 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-full text-[8px] font-black text-cyan-400 uppercase tracking-widest">
+                  Asset Rev. 2.0
+               </div>
+            </div>
+            <p className="text-white/40 text-[10px] uppercase leading-relaxed tracking-widest border-l-2 border-cyan-500/30 pl-4 italic">
+               Advanced neural propulsion architecture. post-human performance standards.
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-             {["NN v4.2", "OTA Sync", "AI Battery", "Auto Nav"].map((stat) => (
-               <div key={stat} className="bg-white/[0.02] border border-white/5 p-4 rounded-xl">
-                  <p className="text-[7px] text-cyan-500 font-black uppercase mb-1">{stat}</p>
-                  <p className="text-[10px] font-bold text-white uppercase tracking-tighter italic">Optimized</p>
-               </div>
-             ))}
+          {/* ── OWNERSHIP PANEL ── */}
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="p-8 bg-gradient-to-br from-white/[0.03] to-transparent border border-white/10 rounded-3xl relative overflow-hidden group"
+          >
+             <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 blur-3xl rounded-full -mr-16 -mt-16 group-hover:bg-cyan-500/10 transition-colors" />
+             
+             <h3 className="text-[10px] font-black text-cyan-500 uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
+                <div className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse shadow-[0_0_8px_#06b2d2]" />
+                {isPurchased ? "Owner Credentials" : "Asset Status"}
+             </h3>
+
+             <div className="grid grid-cols-2 gap-y-8">
+                <div>
+                  <p className="text-[8px] text-white/30 uppercase tracking-widest mb-1">Registered Owner</p>
+                  <p className="text-sm font-bold text-white uppercase tracking-tight">{isPurchased ? "Aditya Pande" : "UNALLOCATED"}</p>
+                </div>
+                <div>
+                  <p className="text-[8px] text-white/30 uppercase tracking-widest mb-1">Status</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-black text-emerald-400 uppercase italic">Active</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[8px] text-white/30 uppercase tracking-widest mb-1">Asset ID</p>
+                  <p className="text-xs font-mono text-cyan-200/50 uppercase">ADYX-992-KLR-01</p>
+                </div>
+                <div>
+                  <p className="text-[8px] text-white/30 uppercase tracking-widest mb-1">Purchase Date</p>
+                  <p className="text-xs font-bold text-white/80 uppercase">26 APR 2026</p>
+                </div>
+             </div>
+          </motion.div>
+
+          {/* ── DETAILED SPECIFICATIONS ── */}
+          <div className="space-y-6">
+             <div className="flex items-center gap-4">
+                <h4 className="text-[10px] font-black text-white uppercase tracking-[0.4em] whitespace-nowrap">Technical Matrix</h4>
+                <div className="h-[1px] w-full bg-white/5" />
+             </div>
+
+             <div className="grid grid-cols-2 gap-4">
+                {[
+                  { label: "Engine", val: "Quattro-Motor / Fusion" },
+                  { label: "Drivetrain", val: "All-Wheel Drive (L4)" },
+                  { label: "Transmission", val: "Neural Smart-Shift" },
+                  { label: "Fuel Type", val: "Solid-State / Ionic" },
+                  { label: "Range", val: car?.specs?.range || "480 Miles" },
+                  { label: "Top Velocity", val: car?.specs?.topSpeed || "205 MPH" },
+                  { label: "Acceleration", val: car?.specs?.zeroToSixty || "2.8 SEC" },
+                  { label: "Edition", val: "Performance Series" }
+                ].map((s, idx) => (
+                  <div key={idx} className="p-4 bg-white/[0.02] border border-white/5 rounded-xl hover:border-white/10 transition-colors">
+                     <p className="text-[7px] text-cyan-500/60 font-black uppercase tracking-widest mb-1">{s.label}</p>
+                     <p className="text-[10px] font-bold text-white uppercase tracking-tight italic">{s.val}</p>
+                  </div>
+                ))}
+             </div>
           </div>
 
-          {/* PERFORMANCE STRIP */}
-          <div className="pt-4 space-y-4">
-             <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.4em]">Performance Metrics</p>
-             <div className="flex justify-between items-center py-4 border-y border-white/5">
-                <div className="text-center">
-                   <p className="text-[14px] font-bold text-white italic">310<span className="text-[8px] text-cyan-500 not-italic ml-1">KM/H</span></p>
+          {/* ── DELIVERY STATUS ── */}
+          <div className="p-8 border border-cyan-500/10 bg-cyan-500/[0.02] rounded-3xl space-y-8">
+             <div className="flex justify-between items-center">
+                <h4 className="text-[10px] font-black text-white uppercase tracking-[0.4em]">Logistics Hub</h4>
+                <span className="text-[9px] font-mono text-cyan-400">ETA: 12 DAYS</span>
+             </div>
+
+             <div className="relative">
+                <div className="absolute top-1/2 left-0 w-full h-1 bg-white/5 -translate-y-1/2" />
+                <div className="relative flex justify-between">
+                   {[1, 1, 1, 0.4].map((op, i) => (
+                     <div key={i} className="w-3 h-3 rounded-full bg-cyan-500 shadow-[0_0_10px_#06b2d2]" style={{ opacity: op }} />
+                   ))}
                 </div>
-                <div className="w-[1px] h-4 bg-white/10" />
-                <div className="text-center">
-                   <p className="text-[14px] font-bold text-white italic">2.8<span className="text-[8px] text-cyan-500 not-italic ml-1">SEC</span></p>
+             </div>
+
+             <div className="space-y-4">
+                <div className="flex justify-between text-[9px] uppercase font-bold tracking-widest">
+                   <span className="text-white">Current Location</span>
+                   <span className="text-cyan-400">MUMBAI_TERMINAL_04</span>
                 </div>
-                <div className="w-[1px] h-4 bg-white/10" />
-                <div className="text-center">
-                   <p className="text-[14px] font-bold text-white italic">870<span className="text-[8px] text-cyan-500 not-italic ml-1">HP</span></p>
+                <div className="flex justify-between text-[9px] uppercase font-bold tracking-widest">
+                   <span className="text-white/40">Status</span>
+                   <span className="text-white/40 italic">In Final QC Transit</span>
                 </div>
              </div>
           </div>
 
-          <div className="space-y-6">
-            <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.4em]">Exterior Selection</p>
-            <div className="flex gap-5">
-              {(car.colors || [{ name: "Default", hex: "#050505" }, { name: "White", hex: "#e0e0e0" }, { name: "Red", hex: "#4a0000" }]).map((color, index) => (
-                <button key={index} onClick={() => setActiveColor(color.hex)} style={{ backgroundColor: color.hex }}
-                  className={`w-10 h-10 rounded-full transition-all duration-700 ${activeColor === color.hex ? 'scale-110 ring-2 ring-cyan-500 ring-offset-4 ring-offset-black' : 'opacity-20 hover:opacity-100'}`} />
-              ))}
-            </div>
+          {/* ── DIGITAL CERTIFICATE ── */}
+          <motion.div 
+            whileHover={{ scale: 1.02 }}
+            className="p-1 w-full bg-gradient-to-r from-blue-600/50 via-cyan-400/50 to-blue-600/50 rounded-3xl"
+          >
+             <div className="bg-[#0b0b0d] p-8 rounded-[22px] flex items-center justify-between">
+                <div className="space-y-2">
+                   <h5 className="text-[11px] font-black text-white uppercase italic tracking-widest">Digital Ownership Certificate</h5>
+                   <p className="text-[8px] text-white/30 uppercase tracking-[0.3em]">Verified via ADYX Distributed Ledger</p>
+                </div>
+                <div className="w-12 h-12 flex items-center justify-center border-2 border-cyan-500/20 rounded-full">
+                   <svg className="w-6 h-6 text-cyan-400 shadow-[0_0_10px_#06b2d2]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                   </svg>
+                </div>
+             </div>
+          </motion.div>
+
+          {/* ── ACTION FOOTER ── */}
+          <div className="pt-8 space-y-4">
+             {isPurchased ? (
+               <div className="flex flex-col gap-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <button className="flex-1 border border-white/10 bg-white/[0.03] text-white py-5 font-black uppercase text-[9px] tracking-[0.3em] hover:bg-white hover:text-black transition-all">Download Invoice</button>
+                    <button className="flex-1 border border-white/10 bg-white/[0.03] text-white py-5 font-black uppercase text-[9px] tracking-[0.3em] hover:bg-white hover:text-black transition-all">Track Order</button>
+                  </div>
+                  <button onClick={() => navigate("/cars")} className="w-full bg-cyan-600 text-white py-6 font-black uppercase text-[10px] tracking-[0.4em] hover:bg-cyan-500 transition-all shadow-[0_20px_50px_rgba(6,182,212,0.2)]">Back to Dashboard</button>
+               </div>
+             ) : (
+               <div className="flex flex-col gap-4">
+                  <div className="flex justify-between items-end bg-cyan-500/5 p-6 rounded-2xl border border-cyan-500/10 mb-4">
+                    <div>
+                      <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1">Asset Value</p>
+                      <h2 className="text-4xl font-mono font-bold text-white italic tracking-tighter">₹ {car.price}</h2>
+                    </div>
+                    <p className="text-[8px] text-cyan-500 font-bold uppercase animate-pulse">Node Available</p>
+                  </div>
+                  <button onClick={() => navigate(`/booking/${car.slug}`, { state: { car, activeColor } })} className="w-full bg-white text-black py-5 font-black uppercase text-[10px] tracking-[0.4em] hover:bg-cyan-500 hover:text-white transition-all shadow-xl shadow-black">Book Test Drive</button>
+                  <button onClick={() => navigate(`/buy/${car.slug}`, { state: { car, activeColor } })} className="w-full border border-cyan-500/50 text-cyan-500 py-5 font-black uppercase text-[10px] tracking-[0.4em] hover:bg-cyan-500/10 transition-all">Buy Neural Asset</button>
+               </div>
+             )}
           </div>
-        </div>
 
-        {/* Action Bottom */}
-        <div className="pt-10 space-y-8 relative z-10">
-           <div className="space-y-2 mb-8">
-              <p className="text-[11px] text-white font-medium leading-relaxed italic">“Engineered for dominance. Designed for Indian roads. Powered by adaptive neural intelligence.”</p>
-           </div>
-
-           <div className="flex justify-between items-end bg-cyan-500/5 p-6 rounded-2xl border border-cyan-500/10 shadow-[0_0_30px_rgba(6,182,212,0.05)]">
-              <div>
-                <p className="text-[9px] font-black text-white/40 uppercase tracking-widest mb-1">Asset Value</p>
-                <h2 className="text-4xl font-mono font-bold text-white italic tracking-tighter">₹ {car.price}</h2>
-                <p className="text-[7px] text-white/30 uppercase mt-1">Ex-Showroom India. On-road price may vary by state.</p>
-              </div>
-              <p className="text-[8px] text-cyan-500 font-bold uppercase animate-pulse">Node Available</p>
-           </div>
-           
-           <div className="flex flex-col gap-4">
-              <button onClick={() => navigate(`/booking/${car.slug}`, { state: { car, activeColor } })} className="w-full bg-white text-black py-5 font-black uppercase text-[10px] tracking-[0.4em] hover:bg-cyan-500 hover:text-white transition-all shadow-xl shadow-black">Book Now</button>
-              <button onClick={() => navigate(`/buy/${car.slug}`, { state: { car, activeColor } })} className="w-full border border-cyan-500/50 text-cyan-500 py-5 font-black uppercase text-[10px] tracking-[0.4em] hover:bg-cyan-500/10 transition-all">Buy Now</button>
-           </div>
+          <div className="text-center pt-8">
+             <p className="text-[7px] text-white/10 uppercase tracking-[1em]">© 2026 ADYX INDIA // SYSTEMS ONLINE</p>
+          </div>
         </div>
       </div>
 
-      {/* 🔥 MODAL: REFINED UPI/INDIAN CONSOLE */}
+      {/* UPI/CREDIT MODAL */}
       <AnimatePresence>
-        {showCheckout && (
+        {showCheckout && car && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10 bg-black/90 backdrop-blur-[20px]">
             <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-[#0a0a0c] border border-cyan-500/20 w-full max-w-6xl rounded-[40px] overflow-hidden flex flex-col md:flex-row shadow-[0_0_100px_rgba(6,182,212,0.15)]">
               
               <div className="w-full md:w-[45%] bg-gradient-to-br from-white/[0.03] to-transparent p-12 flex flex-col justify-between border-r border-white/5">
                 <div className="space-y-6">
                   <span className="text-cyan-500 text-[10px] font-black uppercase tracking-[0.5em]">Bespoke Deployment</span>
-                  <h2 className="text-5xl font-black italic uppercase text-white leading-none">{car.name}</h2>
-                  <div className="h-64 w-full relative"><CarPreview modelPath={car.model_url} paintColor={activeColor} autoRotate={false} /></div>
+                  <h2 className="text-5xl font-black italic uppercase text-white leading-none">{car?.name}</h2>
+                  <div className="h-64 w-full relative">
+                    {modelPath && (
+                      <CarPreview modelPath={modelPath} paintColor={activeColor} autoRotate={false} />
+                    )}
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4 mt-4">
                    <div className="p-4 bg-white/[0.02] rounded-xl border border-white/5">
@@ -217,7 +376,7 @@ const CarDetails = () => {
                 </div>
               </div>
 
-              <div className="w-full md:w-[55%] p-12 flex flex-col relative bg-[#0d0d0f] bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
+              <div className="w-full md:w-[55%] p-12 flex flex-col relative bg-[#0d0d0f]">
                 <button onClick={() => setShowCheckout(false)} className="absolute top-10 right-10 w-10 h-10 flex items-center justify-center rounded-full border border-white/5 text-white/20 hover:text-white hover:border-white/20 transition-all">✕</button>
                 <h3 className="text-2xl font-black italic uppercase text-white mb-10 tracking-tight">Authorization Method</h3>
 
@@ -260,22 +419,22 @@ const CarDetails = () => {
                         <motion.div key="upi" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex flex-col gap-10">
                            <div className="flex flex-col md:flex-row gap-12 items-center bg-white/[0.02] p-8 rounded-3xl border border-white/5">
                               <div
-  onClick={handlePayment}
-  className="p-4 bg-white rounded-2xl cursor-pointer shadow-[0_0_50px_rgba(6,182,212,0.2)] hover:scale-105 transition-all"
->
-  {(() => {
-  const upiLink = `upi://pay?pa=7498463025@ibl&pn=Aditya&am=11&cu=INR&tn=ADYXPayment`;
-  const encodedLink = encodeURIComponent(upiLink);
+                                onClick={handlePayment}
+                                className="p-4 bg-white rounded-2xl cursor-pointer shadow-[0_0_50px_rgba(6,182,212,0.2)] hover:scale-105 transition-all"
+                              >
+                                {(() => {
+                                  const upiLink = `upi://pay?pa=7498463025@ibl&pn=Aditya&am=11&cu=INR&tn=ADYXPayment`;
+                                  const encodedLink = encodeURIComponent(upiLink);
 
-  return (
-    <img
-      src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodedLink}`}
-      alt="Scan to Pay"
-      className="w-40 h-40"
-    />
-  );
-})()}
-</div>
+                                  return (
+                                    <img
+                                      src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodedLink}`}
+                                      alt="Scan to Pay"
+                                      className="w-40 h-40"
+                                    />
+                                  );
+                                })()}
+                              </div>
                               <div className="flex-1 space-y-6 text-center md:text-left">
                                  <div className="flex justify-center md:justify-start gap-4 opacity-50">
                                     <img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/UPI-Logo-vector.svg" alt="UPI" className="h-5" />

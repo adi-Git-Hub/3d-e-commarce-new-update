@@ -44,6 +44,8 @@ const CarCard = ({ car, index, hoveredCar, setHoveredCar, navigate }) => {
     y.set((e.clientY - rect.top) / rect.height - 0.5);
   };
 
+  const modelPath = car.model_url || car.modelPath;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 40 }}
@@ -61,20 +63,35 @@ const CarCard = ({ car, index, hoveredCar, setHoveredCar, navigate }) => {
         {/* Thumbnail + 3D */}
         <div className="h-72 relative overflow-hidden bg-gradient-to-b from-transparent to-cyan-900/10">
           <AnimatePresence mode="wait">
-            {hoveredCar === car.id ? (
-              <motion.div key="3d" className="h-full">
-                <CarCanvas modelPath={car.model_url} />
+            {hoveredCar === car.id && modelPath ? (
+              <motion.div 
+                key="3d" 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="h-full"
+              >
+                <CarCanvas modelPath={modelPath} />
               </motion.div>
             ) : (
-              <motion.div key="img" className="h-full relative">
-                {car.thumbnail ? (
+              <motion.div 
+                key="img" 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="h-full relative"
+              >
+                {car.thumbnail && car.thumbnail.startsWith('http') ? (
                   <img
                     src={car.thumbnail}
                     alt={car.name}
                     className="w-full h-full object-cover grayscale contrast-125 brightness-75 group-hover:brightness-95 transition duration-700"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-[#0a0a0c] to-[#001f3f]" />
+                  <div 
+                    className="w-full h-full" 
+                    style={{ background: car.thumbnail || 'linear-gradient(135deg, #0a0a0c 0%, #001f3f 100%)' }} 
+                  />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
               </motion.div>

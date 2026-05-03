@@ -1,197 +1,159 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useRef } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
-export default function AdminLogin() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+export default function AdminAddCar() {
+  const [name, setName] = useState("");
+  const [price, setPrice] = useState("");
+  const [file, setFile] = useState(null);
+  const [statusMessage, setStatusMessage] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = async () => {
-    console.log("LOGIN CLICKED");
-    setError(""); // Clear previous errors
+  const fileInputRef = useRef(null);
 
-    if (!username || !password) {
-      setError("Enter credentials");
+  const handleAddCar = async () => {
+    if (!name || !price || !file) {
+      setStatusMessage("❌ All fields are required");
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      setStatusMessage("❌ Unauthorized. Please login again.");
       return;
     }
 
     try {
-      const res = await fetch("http://localhost:5000/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ username, password })
-      });
+      setLoading(true);
+      setStatusMessage("");
 
-      const data = await res.json();
-      console.log("LOGIN RESPONSE:", data);
+      const formData = new FormData();
+      formData.append("name", name);
+      formData.append("price", price);
+      formData.append("model", file);
 
-      if (!data.success || !data.token) {
-        setError(data.message || "Login failed");
-        return;
+      const response = await fetch(
+        "http://localhost:5000/api/admin/add-car",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setStatusMessage("✅ Car added successfully");
+
+        setName("");
+        setPrice("");
+        setFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        
+        setTimeout(() => navigate('/admin'), 1500);
+      } else {
+        setStatusMessage(data.message || "❌ Failed to add car");
       }
-
-      // ✅ STORE TOKEN + USER
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-
-      // ✅ DECODE TOKEN TO VERIFY ROLE
-      const payload = JSON.parse(atob(data.token.split(".")[1]));
-      console.log("DECODED TOKEN:", payload);
-
-      // 🔥 CHECK ROLE
-      if (payload.role !== "admin") {
-        setError("Access denied. Admin only.");
-        localStorage.clear();
-        return;
-      }
-
-      // ✅ SUCCESS
-      navigate("/admin");
-
-    } catch (err) {
-      console.error("LOGIN ERROR:", err);
-      setError("Server error");
+    } catch (error) {
+      console.error(error);
+      setStatusMessage("❌ Server error");
+    } finally {
+      setLoading(false);
     }
   };
 
+  const inputStyle = {
+    width: "100%",
+    padding: "16px",
+    borderRadius: "12px",
+    border: "1px solid rgba(255,255,255,0.1)",
+    background: "rgba(0,0,0,0.6)",
+    color: "#fff",
+    outline: "none",
+    boxShadow: "0 0 10px rgba(0,255,255,0.05)",
+  };
+
   return (
-    <div style={styles.container}>
+    <div className="min-h-screen bg-[#050507] text-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
+      {/* Background Effects */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vh] bg-[radial-gradient(circle_at_center,_rgba(0,224,255,0.05)_0%,_transparent_70%)]" />
+      </div>
+
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        style={styles.card}
+        transition={{ duration: 0.6 }}
+        className="relative z-10 w-full max-w-md p-10 bg-white/[0.02] border border-white/5 rounded-3xl backdrop-blur-2xl shadow-2xl"
       >
-        <h2 style={styles.title}>Admin Login</h2>
+        <button onClick={() => navigate('/admin')} className="text-[10px] text-cyan-400 font-black uppercase tracking-widest mb-6 hover:text-white transition-colors">
+          ← Back to Dashboard
+        </button>
 
-        <div style={styles.inputGroup}>
-          <motion.input
-            type="text"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            style={styles.input}
-            whileFocus={styles.inputFocus}
-          />
-        </div>
+        <h2 className="text-3xl font-black italic uppercase tracking-tighter text-white mb-8 text-shadow-glow">
+          Add New <span className="text-cyan-400">Machine</span>
+        </h2>
 
-        <div style={styles.inputGroup}>
-          <motion.input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={styles.input}
-            whileFocus={styles.inputFocus}
-          />
-        </div>
-
-        {error && (
-          <motion.p
+        {/* STATUS */}
+        {statusMessage && (
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            style={styles.errorText}
+            className={`p-4 mb-6 rounded-xl text-center text-sm font-bold tracking-wider ${
+              statusMessage.includes("success")
+                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+                : "bg-red-500/10 text-red-400 border border-red-500/30"
+            }`}
           >
-            {error}
-          </motion.p>
+            {statusMessage}
+          </motion.div>
         )}
 
+        <div className="space-y-5">
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Vehicle Name"
+            style={inputStyle}
+          />
+
+          <input
+            type="number"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            placeholder="Valuation (₹)"
+            style={inputStyle}
+          />
+
+          <div className="p-4 bg-black/60 border border-white/10 rounded-xl">
+            <label className="block text-[10px] text-white/40 uppercase tracking-widest mb-2 font-bold">3D Asset (.glb)</label>
+            <input
+              type="file"
+              accept=".glb"
+              onChange={(e) => setFile(e.target.files[0])}
+              ref={fileInputRef}
+              className="text-sm text-white/60 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:bg-cyan-500/20 file:text-cyan-400 hover:file:bg-cyan-500/30 cursor-pointer"
+            />
+          </div>
+        </div>
+
+        {/* BUTTON */}
         <motion.button
-          onClick={handleLogin}
-          style={styles.button}
-          whileHover={styles.buttonHover}
-          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={handleAddCar}
+          disabled={loading}
+          className="w-full mt-8 py-5 bg-cyan-500 text-black font-black uppercase text-[11px] tracking-[0.5em] rounded-xl hover:bg-cyan-400 transition-all shadow-[0_0_20px_rgba(0,224,255,0.3)] disabled:opacity-50"
         >
-          Login
+          {loading ? "Processing..." : "Deploy Asset"}
         </motion.button>
       </motion.div>
     </div>
   );
 }
-
-const styles = {
-  container: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    minHeight: "100vh",
-    background: "#050507", // Dark background
-    fontFamily: "'Inter', sans-serif",
-    padding: "20px",
-  },
-  card: {
-    background: "rgba(255, 255, 255, 0.03)", // Glassmorphism base
-    backdropFilter: "blur(16px)", // Blur effect
-    WebkitBackdropFilter: "blur(16px)",
-    border: "1px solid rgba(255, 255, 255, 0.05)",
-    borderRadius: "20px",
-    padding: "40px",
-    width: "100%",
-    maxWidth: "420px",
-    boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.5), 0 0 20px rgba(138, 43, 226, 0.15)", // Subtle purple ambient glow
-    display: "flex",
-    flexDirection: "column",
-    gap: "24px",
-  },
-  title: {
-    textAlign: "center",
-    color: "#fff",
-    margin: "0 0 10px 0",
-    fontSize: "32px",
-    fontWeight: "700",
-    letterSpacing: "1px",
-    textShadow: "0 0 15px rgba(6, 182, 212, 0.8), 0 0 30px rgba(6, 182, 212, 0.4)", // Cyan neon text glow
-  },
-  inputGroup: {
-    display: "flex",
-    flexDirection: "column",
-  },
-  input: {
-    width: "100%",
-    padding: "16px",
-    background: "rgba(0, 0, 0, 0.6)",
-    border: "1px solid rgba(255, 255, 255, 0.1)",
-    borderRadius: "12px",
-    color: "white",
-    fontSize: "16px",
-    outline: "none",
-    boxSizing: "border-box",
-    transition: "background 0.3s ease",
-  },
-  inputFocus: {
-    borderColor: "#06b6d4",
-    boxShadow: "0 0 15px rgba(6, 182, 212, 0.5)", // Cyan border glow on focus
-    background: "rgba(0, 0, 0, 0.8)",
-  },
-  button: {
-    marginTop: "8px",
-    padding: "16px",
-    background: "linear-gradient(90deg, #06b6d4, #8a2be2)", // Cyan to purple gradient
-    color: "white",
-    border: "none",
-    borderRadius: "12px",
-    fontSize: "18px",
-    fontWeight: "bold",
-    cursor: "pointer",
-    boxShadow: "0 0 20px rgba(138, 43, 226, 0.4)", // Initial neon glow
-    width: "100%",
-    boxSizing: "border-box",
-    textTransform: "uppercase",
-    letterSpacing: "2px",
-  },
-  buttonHover: {
-    scale: 1.05,
-    boxShadow: "0 0 30px rgba(6, 182, 212, 0.8)", // Enhanced cyan glow on hover
-  },
-  errorText: {
-    color: "#ff4444",
-    textAlign: "center",
-    margin: "0",
-    fontSize: "14px",
-    textShadow: "0 0 8px rgba(255, 68, 68, 0.5)", // Red glow for errors
-  }
-};

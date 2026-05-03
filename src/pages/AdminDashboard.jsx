@@ -1,195 +1,94 @@
-import React, { useState, useRef } from "react";
-import { motion } from "framer-motion";
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
-const AddCar = () => {
-  const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
-  const [file, setFile] = useState(null);
-  const [statusMessage, setStatusMessage] = useState("");
-  const [loading, setLoading] = useState(false);
+// Sub-components
+import AdminCars from "../components/admin/AdminCars";
+import AdminUsers from "../components/admin/AdminUsers";
+import AdminBookings from "../components/admin/AdminBookings";
+import AdminPayments from "../components/admin/AdminPayments";
+import AdminContent from "../components/admin/AdminContent";
+import AdminAudit from "../components/admin/AdminAudit";
 
-  const fileInputRef = useRef(null);
+export default function AdminDashboard() {
+  const [activeTab, setActiveTab] = useState("cars");
+  const navigate = useNavigate();
 
-  const handleAddCar = async () => {
-    if (!name || !price || !file) {
-      setStatusMessage("❌ All fields are required");
-      return;
-    }
-
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      setStatusMessage("❌ Unauthorized. Please login again.");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setStatusMessage("");
-
-      const formData = new FormData();
-      formData.append("name", name);
-      formData.append("price", price);
-      formData.append("model", file);
-
-      const response = await fetch(
-        "http://localhost:5000/api/admin/add-car",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        }
-      );
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setStatusMessage("✅ Car added successfully");
-
-        setName("");
-        setPrice("");
-        setFile(null);
-        if (fileInputRef.current) fileInputRef.current.value = "";
-      } else {
-        setStatusMessage(data.message || "❌ Failed to add car");
-      }
-    } catch (error) {
-      console.error(error);
-      setStatusMessage("❌ Server error");
-    } finally {
-      setLoading(false);
-    }
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/admin/login");
   };
 
+  const navItems = [
+    { id: "cars", label: "Inventory" },
+    { id: "users", label: "Users" },
+    { id: "bookings", label: "Bookings" },
+    { id: "payments", label: "Payments" },
+    { id: "content", label: "Content" },
+    { id: "audit", label: "Audit Logs" }
+  ];
+
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "radial-gradient(circle at top, #0a0a0f, #000)",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        fontFamily: "sans-serif",
-      }}
-    >
-      <motion.div
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        style={{
-          padding: "30px",
-          borderRadius: "16px",
-          width: "350px",
-          backdropFilter: "blur(15px)",
-          background: "rgba(255,255,255,0.03)",
-          border: "1px solid rgba(0,255,255,0.2)",
-          boxShadow:
-            "0 0 20px rgba(0,255,255,0.2), 0 0 60px rgba(0,255,255,0.05)",
-        }}
-      >
-        <h2
-          style={{
-            color: "#0ff",
-            textAlign: "center",
-            marginBottom: "20px",
-            textShadow: "0 0 10px #0ff",
-          }}
-        >
-          🚗 Add New Car
-        </h2>
+    <div className="flex h-screen bg-[#050507] text-white font-sans overflow-hidden">
+      
+      {/* ── SIDEBAR ── */}
+      <div className="w-64 border-r border-white/5 bg-black/50 backdrop-blur-xl flex flex-col z-20 shadow-2xl">
+        <div className="p-8 border-b border-white/5">
+          <span className="text-[10px] text-cyan-400 font-black uppercase tracking-[0.5em]">ADYX</span>
+          <h1 className="text-2xl font-black italic uppercase tracking-tighter text-white mt-1">Control Panel</h1>
+        </div>
 
-        {/* STATUS */}
-        {statusMessage && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            style={{
-              padding: "10px",
-              marginBottom: "15px",
-              borderRadius: "8px",
-              textAlign: "center",
-              background: statusMessage.includes("success")
-                ? "rgba(0,255,100,0.1)"
-                : "rgba(255,0,80,0.1)",
-              color: statusMessage.includes("success")
-                ? "#00ff88"
-                : "#ff4d6d",
-              boxShadow: "0 0 10px rgba(0,255,255,0.2)",
-            }}
+        <nav className="flex-1 p-6 space-y-2 overflow-y-auto">
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`w-full text-left px-5 py-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 ${
+                activeTab === item.id 
+                  ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-[0_0_15px_rgba(0,224,255,0.1)]' 
+                  : 'text-white/40 hover:text-white hover:bg-white/5 border border-transparent'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="p-6 border-t border-white/5">
+          <button 
+            onClick={handleLogout}
+            className="w-full px-5 py-4 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-500/20 transition-all"
           >
-            {statusMessage}
-          </motion.div>
-        )}
-
-        {/* INPUTS */}
-        <div style={{ marginBottom: "15px" }}>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Car Name"
-            style={inputStyle}
-          />
+            Sign Out
+          </button>
         </div>
+      </div>
 
-        <div style={{ marginBottom: "15px" }}>
-          <input
-            type="number"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            placeholder="Price"
-            style={inputStyle}
-          />
+      {/* ── MAIN CONTENT AREA ── */}
+      <div className="flex-1 relative overflow-hidden bg-[radial-gradient(circle_at_top_right,_rgba(0,224,255,0.03)_0%,_transparent_50%)]">
+        <div className="absolute inset-0 pointer-events-none opacity-[0.02]" style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+        
+        <div className="h-full overflow-y-auto p-10 pb-24 relative z-10">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+            >
+              {activeTab === "cars" && <AdminCars />}
+              {activeTab === "users" && <AdminUsers />}
+              {activeTab === "bookings" && <AdminBookings />}
+              {activeTab === "payments" && <AdminPayments />}
+              {activeTab === "content" && <AdminContent />}
+              {activeTab === "audit" && <AdminAudit />}
+            </motion.div>
+          </AnimatePresence>
         </div>
+      </div>
 
-        <div style={{ marginBottom: "20px" }}>
-          <input
-            type="file"
-            accept=".glb"
-            onChange={(e) => setFile(e.target.files[0])}
-            ref={fileInputRef}
-            style={{ color: "#ccc" }}
-          />
-        </div>
-
-        {/* BUTTON */}
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={handleAddCar}
-          disabled={loading}
-          style={{
-            width: "100%",
-            padding: "12px",
-            borderRadius: "10px",
-            border: "none",
-            background: "#0ff",
-            color: "#000",
-            fontWeight: "bold",
-            cursor: "pointer",
-            boxShadow: "0 0 15px #0ff",
-            opacity: loading ? 0.6 : 1,
-          }}
-        >
-          {loading ? "Adding..." : "Add Car"}
-        </motion.button>
-      </motion.div>
     </div>
   );
-};
-
-// INPUT STYLE
-const inputStyle = {
-  width: "100%",
-  padding: "10px",
-  borderRadius: "8px",
-  border: "1px solid rgba(0,255,255,0.3)",
-  background: "rgba(255,255,255,0.05)",
-  color: "#fff",
-  outline: "none",
-  boxShadow: "0 0 10px rgba(0,255,255,0.1)",
-};
-
-export default AddCar;
+}
