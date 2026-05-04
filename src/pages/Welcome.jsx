@@ -1,168 +1,256 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
+
+// Portfolio Components
+import FeatureBlocksSection from "../components/portfolio/FeatureBlocksSection";
+import SelectedWorks from "../components/portfolio/SelectedWorks";
+import VectorBridge from "../components/portfolio/VectorBridge";
+import Footer from "../components/portfolio/Footer";
+import Contact from "../components/portfolio/Contact";
+import Testimonial from "../components/portfolio/Testimonial";
+import Navigation from "../components/portfolio/Navigation";
+
+const BrandLogo = () => (
+  <div className="fixed top-6 left-6 md:top-8 md:left-10 z-50 mix-blend-difference">
+    <h1 className="font-sans font-black text-2xl md:text-4xl tracking-tighter text-white flex items-start">
+      ADITYA
+      <span className="text-xs md:text-lg font-medium ml-1 -mt-1 md:-mt-2">®</span>
+    </h1>
+  </div>
+);
+
+const AvailabilityBadge = () => (
+  <motion.div
+    initial={{ opacity: 0, y: -10 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.4, ease: "easeOut" }}
+    className="absolute z-10 left-1/2 -translate-x-1/2 hidden md:flex items-center gap-2 pointer-events-none"
+    style={{ top: "2.25rem" }}
+  >
+    <span className="relative flex h-1.5 w-1.5">
+      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-400" />
+    </span>
+    <span className="font-sans font-black text-[9px] tracking-[0.25em] uppercase text-white">
+      Available for work
+    </span>
+  </motion.div>
+);
+
+const SocialStrip = () => {
+  const socials = [
+    { label: "GitHub", href: "https://github.com/adi-Git-Hub" },
+    { label: "LinkedIn", href: "https://www.linkedin.com/in/aditya-dev-pande/" },
+    { label: "Instagram", href: "https://www.instagram.com/_aditya_pande_4/" },
+    { label: "Email", href: "mailto:aditya.pande786@gmail.com" },
+  ];
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="absolute z-20 hidden md:flex flex-col items-center"
+      style={{ right: "64px", top: "112px", bottom: "194px", justifyContent: "center", gap: "1rem" }}
+    >
+      <span className="w-[1px] h-8 bg-white/30 flex-shrink-0" />
+      {socials.map(({ label, href }) => (
+        <a
+          key={label}
+          href={href}
+          target={href.startsWith("mailto") ? "_self" : "_blank"}
+          rel="noopener noreferrer"
+          title={label}
+          className="group flex-shrink-0"
+          style={{ writingMode: "vertical-rl", textOrientation: "mixed" }}
+        >
+          <span className="font-sans font-black text-[10px] tracking-[0.22em] uppercase text-white group-hover:opacity-100 transition-opacity duration-300">
+            {label}
+          </span>
+        </a>
+      ))}
+      <span className="w-[1px] h-8 bg-white/30 flex-shrink-0" />
+    </motion.div>
+  );
+};
+
+const SpinningCTA = () => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.8 }}
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+    className="absolute md:z-30 lg:z-10 hidden md:flex items-center justify-center"
+    style={{ bottom: "4rem", right: "4rem" }}
+  >
+    <style>{`
+      @keyframes ctaSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      .cta-ring { animation: ctaSpin var(--cta-spin-duration, 10s) linear infinite; transform-origin: center; }
+      .cta-wrap:hover .cta-ring { --cta-spin-duration: 3s; }
+      .cta-wrap { transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+      .cta-wrap:hover { transform: scale(1.08); }
+    `}</style>
+    <a href="#contact" className="cta-wrap group relative flex items-center justify-center w-[130px] h-[130px]" aria-label="Get in touch">
+      <svg viewBox="0 0 130 130" className="absolute inset-0 w-full h-full pointer-events-none">
+        <circle cx="65" cy="65" r="62" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" />
+      </svg>
+      <svg viewBox="0 0 130 130" className="cta-ring absolute inset-0 w-full h-full pointer-events-none">
+        <defs>
+          <path id="cta-circle-path" d="M65,65 m-50,0 a50,50 0 1,1 100,0 a50,50 0 1,1 -100,0" />
+        </defs>
+        <text fill="rgba(255,255,255,1)" fontSize="8.5" fontFamily="'Inter', sans-serif" fontWeight="900" letterSpacing="4">
+          <textPath href="#cta-circle-path">GET IN TOUCH · GET IN TOUCH · GET IN TOUCH ·&nbsp;</textPath>
+        </text>
+      </svg>
+      <span className="absolute inset-4 rounded-full bg-white scale-0 group-hover:scale-100 transition-transform duration-500 ease-in-out" style={{ transformOrigin: "center" }} />
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="relative z-10 w-6 h-6 text-white group-hover:text-black" style={{ transition: "color 0.3s ease" }}>
+        <path d="M7 17L17 7M17 7H7M17 7v10" />
+      </svg>
+    </a>
+  </motion.div>
+);
 
 export default function Welcome() {
   const navigate = useNavigate();
   const [isExiting, setIsExiting] = useState(false);
+  const footerContainerRef = useRef(null);
+  
+  const { scrollYProgress } = useScroll({
+    target: footerContainerRef,
+    offset: ["start end", "end end"]
+  });
 
-  const handleEnter = () => {
+  const footerY = useTransform(scrollYProgress, [0, 1], ["-50%", "0%"]);
+
+  const handleEnterExperience = () => {
     setIsExiting(true);
     setTimeout(() => {
       navigate("/intro");
     }, 1000);
   };
 
-  const titleWords = ["WELCOME", "TO", "ADYX"];
-
-  // Animation variants for unified section entry
-  const sectionContentVariants = {
-    hidden: { opacity: 0, y: 40 },
-    visible: { 
-      opacity: 1, 
-      y: 0, 
-      transition: { duration: 1.2, ease: [0.16, 1, 0.3, 1] } 
-    }
-  };
-
   return (
-    <div className={`min-h-screen w-full bg-black text-white overflow-x-hidden overflow-y-auto relative font-sans scroll-smooth transition-all duration-1000 ${isExiting ? 'scale-110 opacity-0 blur-2xl' : 'opacity-100'}`}
-         style={{ filter: 'contrast(1.05) brightness(0.95)' }}>
-      
-      {/* ── SECTION 1: CINEMATIC HERO ── */}
-      <section className="relative h-screen w-full flex flex-col items-center justify-start pt-[15vh]">
-        {/* Background Layer */}
-        <div className="absolute inset-0 z-0 overflow-hidden">
-          <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover scale-105" style={{ zIndex: -2 }}>
-            <source src="/hero.mp4" type="video/mp4" />
-          </video>
-          {/* Blend Gradient (Bottom) */}
-          <div className="absolute inset-0 z-[-1]" 
-               style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, transparent 40%, transparent 70%, rgba(0,0,0,0.8) 100%)' }} />
+    <div className={`min-h-screen relative bg-black selection:bg-white selection:text-black overflow-x-hidden transition-all duration-1000 ${isExiting ? 'scale-110 opacity-0 blur-2xl' : 'opacity-100'}`}>
+      <BrandLogo />
+      <Navigation />
+
+      {/* Hero */}
+      <section className="relative h-screen overflow-hidden bg-[#050507]">
+        {/* Background Video (z-0) */}
+        <video 
+          autoPlay 
+          loop 
+          muted 
+          playsInline 
+          className="absolute top-0 left-0 w-full h-full object-cover z-0"
+        >
+          <source src="/videos/hero.mp4" type="video/mp4" />
+        </video>
+        
+        {/* Dark Overlay (z-1) */}
+        <div className="absolute inset-0 bg-black/40 z-[1]" />
+
+        {/* Content Layer (z-2) */}
+        <div className="relative z-[2] h-full flex flex-col px-6 py-12 md:px-16 md:py-16">
+          <AvailabilityBadge />
+          <SocialStrip />
+          <SpinningCTA />
+
+          {/* Mobile Midpoint Buffer */}
+          <div className="h-[32px] w-full md:hidden" />
+
+          <div className="mt-auto mb-6 md:mb-8 text-white">
+            <motion.div
+              initial={{ opacity: 0, y: 60 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              className="w-fit"
+            >
+              <h1 className="font-sans font-bold text-7xl md:text-8xl lg:text-[9rem] xl:text-[11rem] leading-[0.85] tracking-tighter uppercase text-left">
+                Driven<br />by logic
+              </h1>
+            </motion.div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-12 w-full gap-4 mb-8 md:mb-0">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
+              className="col-span-1 md:col-span-5 lg:col-span-4"
+            >
+              <div className="w-12 h-[2px] bg-white mb-6 md:hidden" />
+              <p className="font-sans text-xs md:text-sm font-medium text-white leading-relaxed tracking-wide uppercase text-left">
+                Building robust software, automating the complex and focused on transforming static systems into intelligent ones.
+              </p>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* Content stack */}
+      <div className="relative z-20 w-full bg-transparent">
+        <div id="about" className="relative z-20">
+          <FeatureBlocksSection />
         </div>
 
-        <motion.div 
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={sectionContentVariants}
-          className="relative z-10 w-full px-6 flex flex-col md:flex-row items-center justify-center gap-x-8"
-        >
-           {titleWords.map((word, i) => (
-             <motion.span 
-               key={i} 
-               initial={{ opacity: 0, y: 60, filter: "blur(25px)" }} 
-               animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} 
-               transition={{ duration: 1.8, delay: i * 0.4, ease: [0.16, 1, 0.3, 1] }} 
-               className="text-[clamp(2.5rem,12vw,8rem)] font-black italic uppercase metallic-text leading-none tracking-tighter"
-             >
-               {word}
-             </motion.span>
-           ))}
-        </motion.div>
-
-        <motion.div animate={{ opacity: 0.4, y: [0, 8, 0] }} transition={{ delay: 2.5, repeat: Infinity, duration: 2.5 }} className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 pointer-events-none">
-          <span className="text-[9px] uppercase tracking-[0.8em] font-light">Explore Below</span>
-          <div className="w-[1px] h-12 bg-gradient-to-b from-white to-transparent" />
-        </motion.div>
-      </section>
-
-      {/* ── SECTION 2: THE STATEMENT (Unified Flow) ── */}
-      <section className="relative h-screen w-full flex flex-col items-center justify-center overflow-hidden border-t border-white/5">
-        {/* Background Image Layer */}
-        <div 
-          className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat" 
-          style={{ 
-            backgroundImage: 'url("/showroom.png")',
-            filter: 'brightness(0.7) contrast(1.1)'
-          }}
-        />
-        
-        {/* Continuity Overlays: Blends Page 1 and Page 3 */}
-        <div className="absolute inset-0 z-[1]" 
-             style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 30%, rgba(0,0,0,0.4) 70%, rgba(0,0,0,0.9) 100%)' }} />
-
-        <div className="absolute inset-0 z-[2] backdrop-blur-[1px] pointer-events-none" />
-
-        {/* Staggered Content Animation */}
-        <motion.div 
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-100px" }}
-          variants={sectionContentVariants}
-          className="relative z-[10] max-w-4xl px-8 text-center space-y-10"
-        >
-           <h2 className="text-5xl md:text-7xl font-black italic uppercase tracking-tight text-white leading-tight"
-               style={{ textShadow: '0 0 30px rgba(0, 224, 255, 0.35)' }}>
-             Not Just Cars. <br /> <span className="text-cyan-400">A Statement.</span>
-           </h2>
-           
-           <p className="text-sm md:text-xl text-white/80 uppercase tracking-[0.4em] leading-loose max-w-2xl mx-auto italic font-medium">
-             Own machines that define power, precision, and prestige.
-           </p>
-        </motion.div>
-        
-        <motion.div animate={{ y: [0, 5, 0] }} transition={{ repeat: Infinity, duration: 3 }} className="absolute bottom-10 z-[10] opacity-30 text-[8px] uppercase tracking-[0.4em]">
-          Scroll to Enter
-        </motion.div>
-      </section>
-
-      {/* ── SECTION 3: FINAL CTA (Continuity Blend) ── */}
-      <section className="relative h-screen w-full flex flex-col items-center justify-center overflow-hidden border-t border-white/5">
-        <div className="absolute inset-0 z-0 pointer-events-none">
-          <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: -2, filter: 'blur(3px) brightness(0.7) contrast(1.1)', opacity: 0.65 }}>
-            <source src="/car.mp4" type="video/mp4" />
-          </video>
-          {/* Top blend gradient for Page 2 -> Page 3 transition */}
-          <div className="absolute inset-0 z-[-1]" 
-               style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.6) 100%)' }} />
+        <div id="work" className="bg-black text-white relative z-20">
+          <SelectedWorks />
         </div>
 
-        <motion.div 
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-100px" }}
-          variants={sectionContentVariants}
-          className="relative z-10 max-w-4xl px-8 text-center space-y-12"
-        >
-           <h2 className="text-4xl md:text-6xl font-black italic uppercase tracking-normal text-white">
-             Ready To <span className="text-cyan-400">Take Control?</span>
-           </h2>
-           <p className="text-xs md:text-base text-white/40 uppercase tracking-[0.3em] leading-loose max-w-xl mx-auto font-bold">
-             Step into the showroom and experience precision like never before.
-           </p>
-           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-             <button onClick={handleEnter} className="group relative px-24 py-6 bg-white rounded-full transition-all shadow-[0_0_50px_rgba(255,255,255,0.2)]">
-                <span className="relative z-10 text-black font-black uppercase tracking-[0.6em] text-[11px]">Go To Showroom</span>
-                <div className="absolute inset-0 rounded-full bg-cyan-400 opacity-0 group-hover:opacity-10 blur-xl transition-opacity" />
-             </button>
-           </motion.div>
-        </motion.div>
-      </section>
+        <div className="bg-white text-black relative z-20">
+          <VectorBridge />
+        </div>
 
-      {/* ── FIXED OVERLAY STATS ── */}
-      <div className="fixed bottom-8 left-12 right-12 z-20 flex justify-between items-end opacity-10 pointer-events-none font-mono">
-         <div className="space-y-1">
-            <p className="text-[8px] uppercase tracking-widest">ENGINE: v4.2</p>
-            <p className="text-[8px] uppercase tracking-widest">GATEWAY: ACTIVE</p>
-         </div>
-         <div className="text-right space-y-1">
-            <p className="text-[8px] uppercase tracking-widest">OWNERSHIP: SYNCED</p>
-            <p className="text-[8px] uppercase tracking-widest">© 2026 ADYX</p>
-         </div>
+        <div className="bg-black text-white relative z-20">
+          <Testimonial />
+        </div>
+
+        <div id="contact" className="relative z-20 bg-white text-black">
+          <Contact />
+        </div>
       </div>
 
+      {/* ── FINAL CTA SECTION ── */}
+      <section className="relative z-20 h-[60vh] bg-white text-black flex flex-col items-center justify-center px-6 py-20 border-t border-black/5">
+         <motion.div 
+           initial={{ opacity: 0, y: 40 }}
+           whileInView={{ opacity: 1, y: 0 }}
+           viewport={{ once: true }}
+           transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+           className="text-center space-y-8"
+         >
+            <h2 className="text-4xl md:text-6xl font-black italic uppercase tracking-tighter">
+              Experience <span className="text-gray-400">The Future.</span>
+            </h2>
+            <p className="text-xs md:text-sm text-black/40 uppercase tracking-[0.4em] font-bold max-w-md mx-auto">
+              Ready to explore the 3D automotive universe?
+            </p>
+            
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleEnterExperience}
+              className="group relative px-12 py-5 bg-black text-white rounded-full transition-all overflow-hidden shadow-2xl"
+            >
+               <span className="relative z-10 font-sans font-black uppercase tracking-[0.3em] text-[10px]">Enter Experience</span>
+               <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+            </motion.button>
+         </motion.div>
+      </section>
+
+      {/* Parallax Footer Reveal Stack */}
+      <div ref={footerContainerRef} className="relative z-0 h-screen w-full overflow-hidden bg-black text-white">
+        <motion.div style={{ y: footerY }} className="h-full w-full">
+          <Footer />
+        </motion.div>
+      </div>
+      
       <style>{`
-        .metallic-text {
-          background: linear-gradient(to bottom, #fff 20%, #94a3b8 40%, #fff 45%, #94a3b8 50%, #fff 70%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          filter: drop-shadow(0 0 30px rgba(255,255,255,0.1));
-        }
-        /* Custom scrollbar to keep it clean */
-        ::-webkit-scrollbar { width: 4px; }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #000; }
-        ::-webkit-scrollbar-thumb { background: #111; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #444; }
       `}</style>
     </div>
   );
