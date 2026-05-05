@@ -9,7 +9,6 @@ export default function AdminLogin() {
   const navigate = useNavigate();
 
   const handleLogin = async () => {
-    console.log("LOGIN CLICKED");
     setError(""); // Clear previous errors
 
     if (!username || !password) {
@@ -27,7 +26,6 @@ export default function AdminLogin() {
       });
 
       const data = await res.json();
-      console.log("LOGIN RESPONSE:", data);
 
       if (!data.success || !data.token) {
         setError(data.message || "Login failed");
@@ -40,7 +38,6 @@ export default function AdminLogin() {
 
       // ✅ DECODE TOKEN TO VERIFY ROLE
       const payload = JSON.parse(atob(data.token.split(".")[1]));
-      console.log("DECODED TOKEN:", payload);
 
       // 🔥 CHECK ROLE
       if (payload.role !== "admin") {

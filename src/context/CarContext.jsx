@@ -21,7 +21,6 @@ export const CarProvider = ({ children }) => {
         data.data.forEach(c => mergedMap.set(c.slug, c));
 
         const finalCars = Array.from(mergedMap.values());
-        console.log("MERGED CARS:", finalCars);
         setCars(finalCars);
       }
     } catch (err) {

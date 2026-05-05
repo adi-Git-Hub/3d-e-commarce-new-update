@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect, useRef } from "react";
+import React, { Suspense, useEffect, useRef, memo } from "react";
 import * as THREE from "three";
 import { Canvas, useThree } from "@react-three/fiber";
 import { useGLTF, OrbitControls, Environment, ContactShadows, Html } from "@react-three/drei";
@@ -103,7 +103,6 @@ function AutoFitModel({ path }) {
       controls.update();
     }
 
-    console.log(`%c[3D CORE] Normalized: ${normalizationScale.toFixed(2)} | Distance: ${distance.toFixed(2)}`, "color: #00ff88; font-weight: bold;");
   }, [scene, path, camera, controls]);
 
   return (
@@ -113,7 +112,7 @@ function AutoFitModel({ path }) {
   );
 }
 
-const ModelViewer = ({ modelPath }) => {
+const ModelViewer = memo(({ modelPath }) => {
   return (
     <div className="w-full h-full relative">
       <Canvas
@@ -155,6 +154,6 @@ const ModelViewer = ({ modelPath }) => {
       </Canvas>
     </div>
   );
-};
+});
 
 export default ModelViewer;

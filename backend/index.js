@@ -272,10 +272,8 @@ app.post("/api/auth/register-step1", async (req, res) => {
         subject: "ADYX OTP",
         html: `<h2>${otp}</h2>`,
       });
-      console.log(`OTP sent to ${email}`);
     } catch (emailErr) {
       console.error("EMAIL SEND ERROR:", emailErr.message);
-      console.log(`[DEVELOPMENT] OTP for ${email} is: ${otp}`);
     }
 
     res.json({ success: true, message: "OTP sent (check console in dev)" });
@@ -547,9 +545,6 @@ app.get("/api/cars", async (req, res) => {
 // POST Add new car (Admin only)
 app.post("/api/admin/add-car", authenticateToken, isAdmin, upload.single("model"), async (req, res) => {
   try {
-    console.log("BODY:", req.body);
-    console.log("FILE:", req.file);
-
     const { name, price } = req.body;
 
     if (!name || !price || isNaN(price)) {

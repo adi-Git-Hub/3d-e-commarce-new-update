@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, memo } from 'react';
 import { gsap } from 'gsap';
 import './FlowingMenu.css';
 
@@ -14,7 +14,7 @@ const FlowingMenu = ({
   );
 };
 
-const MenuItem = ({
+const MenuItem = memo(({
   link, text, items, speed, marqueeBgColor, isFirst
 }) => {
   const itemRef = useRef(null);
@@ -117,6 +117,6 @@ const MenuItem = ({
       </div>
     </div>
   );
-};
+});
 
 export default FlowingMenu;

@@ -226,7 +226,7 @@ Your authentication system is now:
 
 ## 📞 Need Help?
 
-1. Check server logs: `console.log` statements added throughout
+1. Check server logs for errors
 2. Check PostgreSQL logs: `/usr/local/var/log/postgresql/`
 3. Review `FIXES_DOCUMENTATION.md` for detailed explanations
 4. Use `SQL_COMMANDS.md` for database queries

@@ -38,7 +38,6 @@ const sendEmail = async (to, subject, otp) => {
       html: htmlContent, 
     });
 
-    console.log("ADYX Premium Email Sent!");
   } catch (error) {
     console.error("Email error:", error.message);
   }
@@ -73,7 +72,6 @@ const sendPaymentEmail = async (to, carName) => {
       html: htmlContent,
     });
 
-    console.log("Payment Email Sent!");
   } catch (error) {
     console.error("Payment Email Error:", error.message);
   }

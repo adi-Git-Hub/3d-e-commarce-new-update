@@ -8,8 +8,6 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 // 🔥 PROTECTED ROUTE
 router.post("/success", async (req, res) => {
-  console.log("🔥 PAYMENT ROUTE HIT 🔥");
-
   const token = req.headers["authorization"]?.split(" ")[1];
 
   if (!token) {
@@ -32,8 +30,6 @@ router.post("/success", async (req, res) => {
     const { carName } = req.body;
 
     await sendPaymentEmail(email, carName);
-
-    console.log("✅ Payment Email Sent To:", email);
 
     res.json({ success: true });
 

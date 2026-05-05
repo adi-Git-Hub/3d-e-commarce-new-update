@@ -14,7 +14,7 @@ import Navigation from "../components/portfolio/Navigation";
 const BrandLogo = () => (
   <div className="fixed top-6 left-6 md:top-8 md:left-10 z-50 mix-blend-difference">
     <h1 className="font-sans font-black text-2xl md:text-4xl tracking-tighter text-white flex items-start">
-      ADITYA
+      ADYX
       <span className="text-xs md:text-lg font-medium ml-1 -mt-1 md:-mt-2">®</span>
     </h1>
   </div>
@@ -41,9 +41,9 @@ const AvailabilityBadge = () => (
 const SocialStrip = () => {
   const socials = [
     { label: "GitHub", href: "https://github.com/adi-Git-Hub" },
-    { label: "LinkedIn", href: "https://www.linkedin.com/in/aditya-dev-pande/" },
-    { label: "Instagram", href: "https://www.instagram.com/_aditya_pande_4/" },
-    { label: "Email", href: "mailto:aditya.pande786@gmail.com" },
+    { label: "LinkedIn", href: "https://www.linkedin.com/in/adyx-dev/" },
+    { label: "Instagram", href: "https://www.instagram.com/_adyx_/" },
+    { label: "Email", href: "mailto:adyx@gmail.com" },
   ];
   return (
     <motion.div

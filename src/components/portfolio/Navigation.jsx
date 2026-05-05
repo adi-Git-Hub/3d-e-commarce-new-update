@@ -10,9 +10,9 @@ const navItems = [
 
 const socialItems = [
   { label: "GitHub", href: "https://github.com/adi-Git-Hub" },
-  { label: "LinkedIn", href: "https://www.linkedin.com/in/aditya-dev-pande/" },
-  { label: "Instagram", href: "https://www.instagram.com/_aditya_pande_4/" },
-  { label: "Email", href: "mailto:aditya.pande786@gmail.com" },
+  { label: "LinkedIn", href: "https://www.linkedin.com/in/adyx-dev/" },
+  { label: "Instagram", href: "https://www.instagram.com/_adyx_/" },
+  { label: "Email", href: "mailto:adyx@gmail.com" },
 ];
 
 const ease = [0.76, 0, 0.24, 1];
@@ -192,7 +192,7 @@ const Navigation = () => {
               exit={{ opacity: 0, transition: { duration: 0.6 } }}
               className="text-xs text-white/20 font-mono tracking-widest mt-8 md:mt-0 md:self-end"
             >
-              © 2026 ADITYA
+              © 2026 ADYX
             </motion.p>
           </motion.div>
         )}

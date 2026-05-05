@@ -18,11 +18,16 @@ const Navbar = () => {
     if ((location.pathname !== "/" && location.pathname !== "/intro") || location.hash === "#main-content") {
       setVisible(true);
     } else {
+      let lastVisible = false;
       const handleScroll = () => {
         const totalScrollableHeight = document.documentElement.scrollHeight - window.innerHeight;
         const currentScroll = window.scrollY;
-        if (currentScroll >= totalScrollableHeight - 50) setVisible(true);
-        else setVisible(false);
+        const shouldBeVisible = currentScroll >= totalScrollableHeight - 50;
+        
+        if (shouldBeVisible !== lastVisible) {
+          setVisible(shouldBeVisible);
+          lastVisible = shouldBeVisible;
+        }
       };
       window.addEventListener("scroll", handleScroll, { passive: true });
       handleScroll();

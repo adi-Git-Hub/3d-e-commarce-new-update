@@ -47,7 +47,6 @@ export default function VerifyRegisterOTP() {
         body: JSON.stringify({ username, email }),
       });
       
-      console.log("OTP Resent Successfully");
     } catch (err) {
       console.error("Resend error:", err);
     }

@@ -104,6 +104,17 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-serif);
   }
+
+  /* --- Performance Optimizations --- */
+  * {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  .card, .animated-container, .scroll-stack-card, .motion-container {
+    transform: translateZ(0);
+    will-change: transform;
+  }
 }
 
 @utility editorial-link {

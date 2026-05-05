@@ -134,8 +134,6 @@ exports.resendOTP = async (req, res) => {
 // ================= LOGIN =================
 exports.login = async (req, res) => {
   try {
-    console.log("LOGIN BODY:", req.body);
-
     const { username, password } = req.body;
 
     const user = await pool.query(

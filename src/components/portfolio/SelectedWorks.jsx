@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useRef, useCallback, useState, memo } from "react";
 import StarBorder from "./StarBorder";
 import './ScrollStack.css';
 
@@ -41,7 +41,7 @@ const projects = [
   },
 ];
 
-const ScrollStackCard = ({ project, index }) => {
+const ScrollStackCard = memo(({ project, index }) => {
   return (
     <StarBorder
       as="div"
@@ -84,7 +84,7 @@ const ScrollStackCard = ({ project, index }) => {
       </div>
     </StarBorder>
   );
-};
+});
 
 const BASE_CONFIG = {
   itemDistance: 100,

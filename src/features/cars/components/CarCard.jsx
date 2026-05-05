@@ -1,10 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 import { useNavigate } from "react-router-dom";
 import CarPreview from "../../../three/CarPreview";
 
-const CarCard = ({ car }) => {
+const CarCard = memo(({ car }) => {
   const [isHovered, setIsHovered] = useState(false);
   const navigate = useNavigate();
   const { ref, inView } = useInView({ threshold: 0.1, triggerOnce: true });
@@ -43,6 +43,6 @@ const CarCard = ({ car }) => {
       </div>
     </div>
   );
-};
+});
 
 export default CarCard;

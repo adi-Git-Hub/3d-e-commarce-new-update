@@ -1,9 +1,9 @@
-import React from "react";
+import React, { memo } from "react";
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 import ModelViewer from "./ModelViewer";
 
-const FeatureBlock = ({ title, text, modelPath, isReversed }) => {
+const FeatureBlock = memo(({ title, text, modelPath, isReversed }) => {
   const { ref, inView } = useInView({
     threshold: 0.1,
     triggerOnce: true,
@@ -65,6 +65,6 @@ const FeatureBlock = ({ title, text, modelPath, isReversed }) => {
       </div>
     </div>
   );
-};
+});
 
 export default FeatureBlock;

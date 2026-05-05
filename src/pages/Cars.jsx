@@ -1,4 +1,4 @@
-import React, { useState, Suspense } from 'react';
+import React, { useState, Suspense, memo } from 'react';
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
@@ -31,7 +31,7 @@ const CarCanvas = ({ modelPath }) => {
 };
 
 // ================= CARD =================
-const CarCard = ({ car, index, hoveredCar, setHoveredCar, navigate }) => {
+const CarCard = memo(({ car, index, hoveredCar, setHoveredCar, navigate }) => {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
 
@@ -133,7 +133,7 @@ const CarCard = ({ car, index, hoveredCar, setHoveredCar, navigate }) => {
       </div>
     </motion.div>
   );
-};
+});
 
 // ================= MAIN =================
 const Cars = () => {

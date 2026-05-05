@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, memo } from "react";
 import './MagicBento.css';
 
 const MagicBento = () => {
@@ -50,7 +50,7 @@ const MagicBento = () => {
   );
 };
 
-const SwissItem = ({ value, suffix, label, description }) => {
+const SwissItem = memo(({ value, suffix, label, description }) => {
   const [count, setCount] = useState(0);
   const ref = useRef(null);
   const hasAnimated = useRef(false);
@@ -107,6 +107,6 @@ const SwissItem = ({ value, suffix, label, description }) => {
       </p>
     </div>
   );
-};
+});
 
 export default MagicBento;

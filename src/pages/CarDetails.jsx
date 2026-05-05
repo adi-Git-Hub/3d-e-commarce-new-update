@@ -226,7 +226,7 @@ const CarDetails = () => {
              <div className="grid grid-cols-2 gap-y-8">
                 <div>
                   <p className="text-[8px] text-white/30 uppercase tracking-widest mb-1">Registered Owner</p>
-                  <p className="text-sm font-bold text-white uppercase tracking-tight">{isPurchased ? "Aditya Pande" : "UNALLOCATED"}</p>
+                  <p className="text-sm font-bold text-white uppercase tracking-tight">{isPurchased ? "ADYX" : "UNALLOCATED"}</p>
                 </div>
                 <div>
                   <p className="text-[8px] text-white/30 uppercase tracking-widest mb-1">Status</p>
@@ -423,7 +423,7 @@ const CarDetails = () => {
                                 className="p-4 bg-white rounded-2xl cursor-pointer shadow-[0_0_50px_rgba(6,182,212,0.2)] hover:scale-105 transition-all"
                               >
                                 {(() => {
-                                  const upiLink = `upi://pay?pa=7498463025@ibl&pn=Aditya&am=11&cu=INR&tn=ADYXPayment`;
+                                  const upiLink = `upi://pay?pa=7498463025@ibl&pn=ADYX&am=11&cu=INR&tn=ADYXPayment`;
                                   const encodedLink = encodeURIComponent(upiLink);
 
                                   return (

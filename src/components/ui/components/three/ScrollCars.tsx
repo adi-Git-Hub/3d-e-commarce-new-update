@@ -44,11 +44,6 @@ function CarModel({ path, position }: any) {
 
     box.getSize(size)
 
-    console.log("MODEL:", path)
-    console.log("WIDTH:", size.x)
-    console.log("HEIGHT:", size.y)
-    console.log("LENGTH:", size.z)
-
   }, [scene, path])
 
   return (

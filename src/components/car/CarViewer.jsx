@@ -100,7 +100,6 @@ const CarViewer = ({ modelPath, paintColor, isInterior }) => {
     }
 
     camera.updateProjectionMatrix();
-    console.log(`%c[CAR-VIEW FIX] Scale: ${normalizationScale.toFixed(2)} | Model: ${modelPath.split('/').pop()}`, "color: #ff8800; font-weight: bold;");
   }, [clonedScene, isInterior, modelPath, camera, controls]);
 
   return (

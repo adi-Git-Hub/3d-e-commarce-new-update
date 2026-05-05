@@ -10,7 +10,7 @@
     "fix": "npm audit fix"
   },
   "keywords": [],
-  "author": "Aditya Pande",
+  "author": "ADYX",
   "license": "ISC",
   "dependencies": {
     "bcryptjs": "^2.4.3",

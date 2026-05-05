@@ -16,7 +16,7 @@ router.post("/", async (req, res) => {
 
     const mailOptions = {
       from: `"ADYX Website" <${process.env.EMAIL_USER}>`,
-      to: "aditya.dev.pande@gmail.com",
+      to: "adyx@gmail.com",
       subject: "New ADYX Consultation Request",
       html: `
   <div style="background-color:#0a0c12;padding:40px;font-family:Arial,sans-serif;color:#ffffff;">

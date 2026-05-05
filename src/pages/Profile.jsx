@@ -56,7 +56,7 @@ export default function Profile() {
         });
         setBookings(res.data.bookings);
       } catch (err) {
-        console.log("No bookings found yet.");
+        // No bookings found yet.
       }
     };
     if (user?.id) fetchHistory();
